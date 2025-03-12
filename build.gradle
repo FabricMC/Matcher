@@ -201,7 +201,7 @@ publishing {
 publishMods {
 	changelog = providers.environmentVariable("CHANGELOG").getOrElse("No changelog provided")
 	type = STABLE
-	dryRun = providers.environmentVariable("CURSEFORGE_API_KEY").map { false }.getOrElse(true)
+	dryRun = providers.environmentVariable("GITHUB_TOKEN").map { false }.getOrElse(true)
 
 	file = jar.archiveFile
 
