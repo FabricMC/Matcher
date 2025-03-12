@@ -8,6 +8,7 @@ plugins {
 	id 'org.gradlex.extra-java-module-info'
 	id 'com.gradleup.shadow'
 	id 'eclipse'
+	id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
 }
 
 repositories {
@@ -70,6 +71,27 @@ javafx {
 	configuration = 'compileOnly'
 }
 
+def platforms = [
+	"linux",
+	"mac",
+	"mac-aarch64",
+	"win"
+]
+
+def fxModules = [
+	"javafx-base",
+	"javafx-graphics",
+	"javafx-controls",
+	"javafx-web",
+	"javafx-media"
+]
+
+configurations {
+	platforms.each { platform ->
+		register(platform)
+	}
+}
+
 dependencies {
 	api "org.ow2.asm:asm:${asm_version}"
 	api "org.ow2.asm:asm-tree:${asm_version}"
@@ -92,22 +114,13 @@ dependencies {
 	runtimeOnly "org.tinylog:tinylog-impl:${tinylog_version}"
 	runtimeOnly "org.tinylog:slf4j-tinylog:${tinylog_version}"
 
-	// JavaFX for all platforms (needed for cross-platform fat jar)
-	runtimeOnly "org.openjfx:javafx-base:${javafx_version}:win"
-	runtimeOnly "org.openjfx:javafx-base:${javafx_version}:mac"
-	runtimeOnly "org.openjfx:javafx-base:${javafx_version}:linux"
-	runtimeOnly "org.openjfx:javafx-graphics:${javafx_version}:win"
-	runtimeOnly "org.openjfx:javafx-graphics:${javafx_version}:mac"
-	runtimeOnly "org.openjfx:javafx-graphics:${javafx_version}:linux"
-	runtimeOnly "org.openjfx:javafx-controls:${javafx_version}:win"
-	runtimeOnly "org.openjfx:javafx-controls:${javafx_version}:mac"
-	runtimeOnly "org.openjfx:javafx-controls:${javafx_version}:linux"
-	runtimeOnly "org.openjfx:javafx-web:${javafx_version}:win"
-	runtimeOnly "org.openjfx:javafx-web:${javafx_version}:mac"
-	runtimeOnly "org.openjfx:javafx-web:${javafx_version}:linux"
-	runtimeOnly "org.openjfx:javafx-media:${javafx_version}:win"
-	runtimeOnly "org.openjfx:javafx-media:${javafx_version}:mac"
-	runtimeOnly "org.openjfx:javafx-media:${javafx_version}:linux"
+	platforms.each {platform ->
+		fxModules.each {module ->
+			add(platform, "org.openjfx:${module}:${javafx_version}:${platform}") {
+				transitive = false
+			}
+		}
+	}
 }
 
 extraJavaModuleInfo {
@@ -136,6 +149,33 @@ jar {
 	processResources.exclude('tinylog-dev.properties')
 }
 
+// Disable the default shadowJar task
+shadowJar {
+	enabled = false
+}
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+platforms.forEach { platform ->
+	def platformJar = tasks.register(platform + "Jar", ShadowJar) {
+		archiveClassifier = platform
+		from sourceSets.named('main').map { it.output }
+		configurations.add(project.configurations.getByName(platform))
+		configurations.add(project.configurations.runtimeClasspath)
+
+		exclude 'META-INF/*.RSA'
+		exclude 'META-INF/*.SF'
+
+		manifest {
+			attributes 'Main-Class': 'matcher.Main'
+		}
+	}
+
+	tasks.named('assemble') {
+		dependsOn platformJar
+	}
+}
+
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
@@ -144,8 +184,6 @@ publishing {
 	}
 
 	repositories {
-		mavenLocal()
-
 		if (ENV.MAVEN_URL) {
 			repositories.maven {
 				name "fabric"
@@ -156,5 +194,24 @@ publishing {
 				}
 			}
 		}
+	}
+}
+
+// Publish the fat platform specific jars to GitHub releases
+publishMods {
+	changelog = providers.environmentVariable("CHANGELOG").getOrElse("No changelog provided")
+	type = STABLE
+	dryRun = providers.environmentVariable("CURSEFORGE_API_KEY").map { false }.getOrElse(true)
+
+	file = jar.archiveFile
+
+	platforms.forEach { platform ->
+		additionalFiles.from tasks.named(platform + "Jar", ShadowJar).map { it.archiveFile }
+	}
+
+	github {
+		accessToken = providers.environmentVariable("GITHUB_TOKEN")
+		repository = providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("FabricMC/dryrun")
+		commitish = providers.environmentVariable("GITHUB_REF_NAME").getOrElse("dryrun")
 	}
 }
