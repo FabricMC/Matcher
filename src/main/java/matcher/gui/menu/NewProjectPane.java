@@ -310,7 +310,7 @@ public class NewProjectPane extends GridPane {
 	}
 
 	public ProjectConfig createConfig() {
-		return new ProjectConfig.Builder(new ArrayList<>(pathsA), new ArrayList<>(pathsB))
+		return ProjectConfig.builder(new ArrayList<>(pathsA), new ArrayList<>(pathsB))
 				.classPathA(new ArrayList<>(classPathA))
 				.classPathB(new ArrayList<>(classPathB))
 				.sharedClassPath(new ArrayList<>(sharedClassPath))

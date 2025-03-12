@@ -1001,14 +1001,14 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 
 			// check if c or a superclass of c implements this with multiple indirections
 			if (toCheck != null) {
-				while ((sc = toCheck.poll()) != null) {
-					for (ClassInstance iface : sc.getInterfaces()) {
-						assert iface != this; // already checked
+				ClassInstance iface;
 
-						if (implementers.contains(iface)) return true;
+				while ((iface = toCheck.poll()) != null) {
+					assert iface != this; // already checked
 
-						toCheck.addAll(iface.interfaces);
-					}
+					if (implementers.contains(iface)) return true;
+
+					toCheck.addAll(iface.interfaces);
 				}
 			}
 		}
