@@ -32,6 +32,10 @@ checkstyle {
 	toolVersion = project.checkstyle_version
 }
 
+tasks.withType(Checkstyle) {
+	exclude 'job4j/'
+}
+
 spotless {
 	lineEndings = com.diffplug.spotless.LineEnding.UNIX
 
@@ -111,6 +115,7 @@ dependencies {
 		exclude group: 'com.android.tools.build', module: 'aapt2-proto'
 		exclude group: 'io.github.skylot', module: 'raung-disasm'
 	}
+	implementation "org.controlsfx:controlsfx:${controlsfx_version}"
 	runtimeOnly "org.tinylog:tinylog-impl:${tinylog_version}"
 	runtimeOnly "org.tinylog:slf4j-tinylog:${tinylog_version}"
 
