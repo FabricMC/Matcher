@@ -91,7 +91,7 @@ public abstract class MemberInstance<T extends MemberInstance<T>> implements Mat
 	public abstract boolean isReal();
 
 	@Override
-	public Matchable<?> getOwner() {
+	public ClassInstance getOwner() {
 		return cls;
 	}
 

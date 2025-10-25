@@ -143,7 +143,7 @@ public final class MethodVarInstance implements Matchable<MethodVarInstance> {
 	}
 
 	@Override
-	public Matchable<?> getOwner() {
+	public MethodInstance getOwner() {
 		return method;
 	}
 
