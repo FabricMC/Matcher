@@ -1,13 +1,18 @@
 package matcher.gui.tab;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Set;
-import java.util.concurrent.Future;
+import java.util.function.DoubleConsumer;
+
+import javafx.application.Platform;
+import job4j.JobSettings.MutableJobSettings;
+import job4j.JobState;
 
 import matcher.NameType;
+import matcher.Util;
 import matcher.gui.Gui;
 import matcher.gui.ISelectionProvider;
+import matcher.jobs.JobCategories;
+import matcher.jobs.MatcherJob;
 import matcher.srcprocess.Decompiler;
 import matcher.srcprocess.HtmlUtil;
 import matcher.srcprocess.SrcDecorator;
@@ -19,12 +24,12 @@ import matcher.type.MemberInstance;
 import matcher.type.MethodInstance;
 
 public class SourcecodeTab extends WebViewTab {
-	public SourcecodeTab(Gui gui, ISelectionProvider selectionProvider, boolean unmatchedTmp) {
+	public SourcecodeTab(Gui gui, ISelectionProvider selectionProvider, boolean isSource) {
 		super("source", "ui/templates/CodeViewTemplate.htm");
 
 		this.gui = gui;
 		this.selectionProvider = selectionProvider;
-		this.unmatchedTmp = unmatchedTmp;
+		this.isSource = isSource;
 
 		update();
 	}
@@ -80,11 +85,6 @@ public class SourcecodeTab extends WebViewTab {
 
 		final int cDecompId = ++decompId;
 
-		if (pendingUpdateTask != null) {
-			pendingUpdateTask.cancel(true);
-			pendingUpdateTask = null;
-		}
-
 		if (selectedClass == null) {
 			displayText("no class selected");
 			return;
@@ -92,46 +92,52 @@ public class SourcecodeTab extends WebViewTab {
 
 		displayText("decompiling...");
 
-		NameType nameType = gui.getNameType().withUnmatchedTmp(unmatchedTmp);
+		NameType nameType = gui.getNameType().withUnmatchedTmp(isSource);
 		Decompiler decompiler = gui.getDecompiler().get();
 
-		//Gui.runAsyncTask(() -> gui.getEnv().decompile(selectedClass, true))
-		pendingUpdateTask = Gui.runAsyncTask(() -> SrcDecorator.decorate(gui.getEnv().decompile(decompiler, selectedClass, nameType), selectedClass, nameType))
-				.whenComplete((res, exc) -> applyDecompilerResult(res, exc, cDecompId));
-	}
-
-	private void applyDecompilerResult(String res, Throwable exc, int cDecompId) {
-		if (cDecompId != decompId) {
-			if (exc != null) {
-				exc.printStackTrace();
+		var decompileJob = new MatcherJob<String>(isSource ? JobCategories.DECOMPILE_SOURCE : JobCategories.DECOMPILE_DEST) {
+			@Override
+			protected void changeDefaultSettings(MutableJobSettings settings) {
+				settings.dontPrintStacktraceOnError();
+				settings.cancelPreviousJobsWithSameId();
 			}
 
-			return;
-		}
-
-		if (exc != null) {
-			exc.printStackTrace();
-
-			StringWriter sw = new StringWriter();
-			exc.printStackTrace(new PrintWriter(sw));
-
-			if (exc instanceof SrcParseException) {
-				SrcParseException parseExc = (SrcParseException) exc;
-				displayText("parse error: "+parseExc.problems+"\ndecompiled source:\n"+parseExc.source);
-			} else {
-				displayText("decompile error: "+sw.toString());
+			@Override
+			protected String execute(DoubleConsumer progressReceiver) {
+				return SrcDecorator.decorate(gui.getEnv().decompile(decompiler, selectedClass, nameType), selectedClass, nameType);
 			}
-		} else {
-			double prevScroll = updateNeeded == UPDATE_REFRESH ? getScrollTop() : 0;
-
-			displayHtml(res);
-
-			if (updateNeeded == UPDATE_REFRESH && prevScroll > 0) {
-				setScrollTop(prevScroll);
+		};
+		decompileJob.addCompletionListener((code, error) -> Platform.runLater(() -> {
+			if (cDecompId != decompId) {
+				return;
 			}
-		}
 
-		updateNeeded = UPDATE_NONE;
+			if (code.isEmpty() && decompileJob.getState() == JobState.CANCELED) {
+				// The job got canceled before any code was generated. Ignore potential errors.
+				displayText("decompilation canceled");
+				return;
+			}
+
+			if (error.isPresent()) {
+				if (error.get() instanceof SrcParseException) {
+					SrcParseException parseExc = (SrcParseException) error.get();
+					displayText("parse error: " + parseExc.problems + "\ndecompiled source:\n" + parseExc.source);
+				} else {
+					displayText("decompile error: " + Util.getStacktrace(error.get()));
+				}
+			} else if (code.isPresent()) {
+				double prevScroll = updateNeeded == UPDATE_REFRESH ? getScrollTop() : 0;
+
+				displayHtml(code.get());
+
+				if (updateNeeded == UPDATE_REFRESH && prevScroll > 0) {
+					setScrollTop(prevScroll);
+				}
+			}
+
+			updateNeeded = UPDATE_NONE;
+		}));
+		decompileJob.run();
 	}
 
 	@Override
@@ -158,12 +164,11 @@ public class SourcecodeTab extends WebViewTab {
 
 	private final Gui gui;
 	private final ISelectionProvider selectionProvider;
-	private final boolean unmatchedTmp;
+	private final boolean isSource;
 
 	private int decompId;
 	private int updateNeeded = UPDATE_NONE;
 	private boolean tabSelected;
 	private ClassInstance selectedClass;
 	private MemberInstance<?> selectedMember;
-	private Future<?> pendingUpdateTask;
 }
