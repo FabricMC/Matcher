@@ -212,7 +212,7 @@ public class Gui extends Application {
 
 		if (!validProjectConfigArgPresent) return;
 
-		ProjectConfig config = new ProjectConfig.Builder(inputsA, inputsB)
+		ProjectConfig config = ProjectConfig.builder(inputsA, inputsB)
 				.classPathA(new ArrayList<>(classPathA))
 				.classPathB(new ArrayList<>(classPathB))
 				.sharedClassPath(new ArrayList<>(sharedClassPath))

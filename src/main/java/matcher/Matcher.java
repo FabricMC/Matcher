@@ -106,7 +106,7 @@ public class Matcher {
 		List<Path> classPathA = resolvePaths(inputDirs, cpFilesA);
 		List<Path> classPathB = resolvePaths(inputDirs, cpFilesB);
 
-		ProjectConfig config = new ProjectConfig.Builder(pathsA, pathsB)
+		ProjectConfig config = ProjectConfig.builder(pathsA, pathsB)
 				.classPathA(new ArrayList<>(classPathA))
 				.classPathB(new ArrayList<>(classPathB))
 				.sharedClassPath(new ArrayList<>(sharedClassPath))

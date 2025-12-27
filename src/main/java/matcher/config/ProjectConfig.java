@@ -9,8 +9,12 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public class ProjectConfig {
+	public static Builder builder(List<Path> pathsA, List<Path> pathsB) {
+		return new Builder(pathsA, pathsB);
+	}
+
 	public static class Builder {
-		public Builder(List<Path> pathsA, List<Path> pathsB) {
+		private Builder(List<Path> pathsA, List<Path> pathsB) {
 			this.pathsA = pathsA;
 			this.pathsB = pathsB;
 		}
@@ -97,17 +101,17 @@ public class ProjectConfig {
 
 		protected final List<Path> pathsA;
 		protected final List<Path> pathsB;
-		protected List<Path> classPathA;
-		protected List<Path> classPathB;
-		protected List<Path> sharedClassPath;
+		protected List<Path> classPathA = Collections.emptyList();
+		protected List<Path> classPathB = Collections.emptyList();
+		protected List<Path> sharedClassPath = Collections.emptyList();
 		protected boolean inputsBeforeClassPath;
 		protected Path mappingsPathA;
 		protected Path mappingsPathB;
 		protected boolean saveUnmappedMatches = true;
-		protected String nonObfuscatedClassPatternA;
-		protected String nonObfuscatedClassPatternB;
-		protected String nonObfuscatedMemberPatternA;
-		protected String nonObfuscatedMemberPatternB;
+		protected String nonObfuscatedClassPatternA = "";
+		protected String nonObfuscatedClassPatternB = "";
+		protected String nonObfuscatedMemberPatternA = "";
+		protected String nonObfuscatedMemberPatternB = "";
 	}
 
 	private ProjectConfig(List<Path> pathsA, List<Path> pathsB, List<Path> classPathA, List<Path> classPathB,
