@@ -796,7 +796,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		ClassInstance cls = superClass;
 
 		while (cls != null) {
-			ret = cls.getField(name, desc);
+			ret = cls.resolveField(name, desc);
 			if (ret != null) return ret;
 
 			cls = cls.superClass;
