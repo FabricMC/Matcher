@@ -1,7 +1,6 @@
 package matcher.gui.ui;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -123,8 +122,8 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		Stylesheet css;
 
 		try {
-			css = parser.parse(Config.getTheme().getUrl().toURI().toURL());
-		} catch (IOException | URISyntaxException e) {
+			css = parser.parse(MatcherGui.getThemeCss(Config.getTheme()));
+		} catch (IOException e) {
 			Matcher.LOGGER.error("CSS parsing failed", e);
 			return;
 		}

@@ -2,6 +2,7 @@ package matcher.gui;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -414,11 +415,11 @@ public class MatcherGui extends Application {
 
 	public void updateCss() {
 		if (lastSwitchedToTheme != null) {
-			scene.getStylesheets().removeAll(lastSwitchedToTheme.getUrl().toExternalForm());
+			scene.getStylesheets().removeAll(getThemeCss(lastSwitchedToTheme).toExternalForm());
 		}
 
 		lastSwitchedToTheme = Config.getTheme();
-		scene.getStylesheets().add(lastSwitchedToTheme.getUrl().toExternalForm());
+		scene.getStylesheets().add(getThemeCss(lastSwitchedToTheme).toExternalForm());
 
 		for (IGuiComponent c : components) {
 			c.onViewChange(ViewChangeCause.THEME_CHANGED);
@@ -639,6 +640,14 @@ public class MatcherGui extends Application {
 		lastChooserFile = file;
 
 		return file.toPath();
+	}
+
+	public static URL getThemeCss(Theme theme) {
+		String path = "/ui/styles/" + theme.getId() + ".css";
+		URL ret = MatcherGui.class.getResource(path);
+		if (ret == null) throw new RuntimeException("can't find resource "+path);
+
+		return ret;
 	}
 
 	public enum SortKey {

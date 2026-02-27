@@ -1,7 +1,5 @@
 package matcher.model.config;
 
-import java.net.URL;
-
 public enum Theme {
 	VS_CODE_LIGHT("vs-code-light", "VS Code Light", false, ColorInterpolationMode.HSB),
 	ECLIPSE_LIGHT("eclipse-light", "Eclipse Light", false, ColorInterpolationMode.HSB),
@@ -41,10 +39,6 @@ public enum Theme {
 
 	public ColorInterpolationMode getDiffColorInterpolationMode() {
 		return diffColorInterpolationMode;
-	}
-
-	public URL getUrl() {
-		return getClass().getResource("/ui/styles/" + id + ".css");
 	}
 
 	private final String id;

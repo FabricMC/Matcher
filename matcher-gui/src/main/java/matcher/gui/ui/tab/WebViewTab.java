@@ -15,6 +15,7 @@ import javafx.concurrent.Worker.State;
 import javafx.scene.control.Tab;
 import javafx.scene.web.WebView;
 
+import matcher.gui.MatcherGui;
 import matcher.gui.srcprocess.HtmlUtil;
 import matcher.gui.ui.IGuiComponent;
 import matcher.model.config.Config;
@@ -44,7 +45,7 @@ abstract class WebViewTab extends Tab implements IGuiComponent.Selectable {
 
 	protected void displayHtml(String html) {
 		html = template.replace("%text%", html)
-				.replace("%theme_path%", Config.getTheme().getUrl().toExternalForm());
+				.replace("%theme_path%", MatcherGui.getThemeCss(Config.getTheme()).toExternalForm());
 
 		//Matcher.LOGGER.debug(html);
 		webView.getEngine().loadContent(html);
