@@ -1,217 +1,135 @@
 plugins {
-	id 'java-library'
-	id 'application'
-	id 'maven-publish'
-	id "checkstyle"
-	id 'com.diffplug.spotless'
-	id 'org.openjfx.javafxplugin'
-	id 'org.gradlex.extra-java-module-info'
-	id 'com.gradleup.shadow'
-	id 'eclipse'
-	id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
+	id 'com.diffplug.spotless' apply false
+	id 'org.gradlex.extra-java-module-info' apply false
+	id 'com.gradleup.shadow' apply false
+	id 'me.modmuss50.mod-publish-plugin' apply false
 }
 
-repositories {
-	mavenCentral()
-	maven {
-		name = "Fabric"
-		url = 'https://maven.fabricmc.net/'
-	}
-}
-
-group = 'net.fabricmc'
-
-base {
-	archivesName = 'matcher'
-}
-
-def ENV = System.getenv()
-
-checkstyle {
-	configFile = project.file("checkstyle.xml")
-	toolVersion = project.checkstyle_version
-}
-
-spotless {
-	lineEndings = com.diffplug.spotless.LineEnding.UNIX
-
-	java {
-		removeUnusedImports()
-		importOrder('java.', 'javax.', '', 'net.fabricmc.', 'matcher.')
-		indentWithTabs()
-		trimTrailingWhitespace()
-	}
-}
-
-java {
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
-
-	if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
-		toolchain {
-			languageVersion = JavaLanguageVersion.of(17)
-		}
-	}
-
-	withSourcesJar()
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.encoding = "UTF-8"
-	it.options.release = 17
-}
-
-javafx {
-	version = javafx_version
-	modules = [ 'javafx.controls', 'javafx.web' ]
-
-	// Don't include native binaries via the plugin,
-	// since it will only include those for the current OS.
-	// The full set of native libraries gets shadowed a few lines beneath.
-	configuration = 'compileOnly'
-}
-
-def platforms = [
-	"linux",
-	"mac",
-	"mac-aarch64",
-	"win"
-]
-
-def fxModules = [
-	"javafx-base",
-	"javafx-graphics",
-	"javafx-controls",
-	"javafx-web",
-	"javafx-media"
-]
-
-configurations {
-	platforms.each { platform ->
-		register(platform)
-	}
-}
-
-dependencies {
-	api "org.ow2.asm:asm:${asm_version}"
-	api "org.ow2.asm:asm-tree:${asm_version}"
-	api "org.slf4j:slf4j-api:${slf4j_version}"
-	api "net.fabricmc:mapping-io:${mappingio_version}"
-	implementation "org.ow2.asm:asm-commons:${asm_version}"
-	implementation "org.ow2.asm:asm-util:${asm_version}"
-	implementation "com.github.javaparser:javaparser-core:${javaparser_version}"
-	implementation "net.fabricmc:cfr:${fabric_cfr_version}"
-	implementation "org.vineflower:vineflower:${vineflower_version}"
-	implementation "org.bitbucket.mstrobel:procyon-compilertools:${procyon_version}"
-	implementation ("io.github.skylot:jadx-core:${jadx_version}") {
-		exclude group: 'com.android.tools.build', module: 'aapt2-proto'
-		exclude group: 'com.google.protobuf', module: 'protobuf-java'
-	}
-	implementation ("io.github.skylot:jadx-java-input:${jadx_version}") {
-		exclude group: 'com.android.tools.build', module: 'aapt2-proto'
-		exclude group: 'io.github.skylot', module: 'raung-disasm'
-	}
-	runtimeOnly "org.tinylog:tinylog-impl:${tinylog_version}"
-	runtimeOnly "org.tinylog:slf4j-tinylog:${tinylog_version}"
-
-	platforms.each {platform ->
-		fxModules.each {module ->
-			add(platform, "org.openjfx:${module}:${javafx_version}:${platform}") {
-				transitive = false
-			}
-		}
-	}
-}
-
-extraJavaModuleInfo {
-	failOnMissingModuleInfo.set(false) // because of transitive dependencies
-
-	// CFR
-	automaticModule("net.fabricmc:cfr", "cfr")
-
-	// Vineflower
-	automaticModule("org.vineflower:vineflower", "org.vineflower.vineflower")
-
-	// Procyon
-	automaticModule("org.bitbucket.mstrobel:procyon-compilertools", "procyon.compilertools")
-
-	// JADX
-	automaticModule("io.github.skylot:jadx-core", "jadx.core")
-	automaticModule("io.github.skylot:jadx-java-input", "jadx.plugins.java_input")
-}
-
-application {
-	mainModule = 'matcher'
-	mainClass = 'matcher.Main'
-}
-
-jar {
-	processResources.exclude('tinylog-dev.properties')
-}
-
-// Disable the default shadowJar task
-shadowJar {
-	enabled = false
-}
-
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
-platforms.forEach { platform ->
-	def platformJar = tasks.register(platform + "Jar", ShadowJar) {
-		archiveClassifier = platform
-		from sourceSets.named('main').map { it.output }
-		configurations.add(project.configurations.getByName(platform))
-		configurations.add(project.configurations.runtimeClasspath)
-
-		exclude 'META-INF/*.RSA'
-		exclude 'META-INF/*.SF'
-
-		manifest {
-			attributes 'Main-Class': 'matcher.Main'
-		}
-	}
-
-	tasks.named('assemble') {
-		dependsOn platformJar
-	}
-}
-
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-		}
-	}
+subprojects {
+	apply plugin: 'java-library'
+	apply plugin: 'maven-publish'
+	apply plugin: 'checkstyle'
+	apply plugin: 'com.diffplug.spotless'
+	apply plugin: 'com.gradleup.shadow'
+	apply plugin: 'org.gradlex.extra-java-module-info'
+	apply plugin: 'eclipse'
+	apply plugin: 'me.modmuss50.mod-publish-plugin'
 
 	repositories {
-		if (ENV.MAVEN_URL) {
-			repositories.maven {
-				name = "fabric"
-				url = ENV.MAVEN_URL
-				credentials {
-					username = ENV.MAVEN_USERNAME
-					password = ENV.MAVEN_PASSWORD
+		mavenCentral()
+		maven {
+			name = "Fabric"
+			url = 'https://maven.fabricmc.net/'
+		}
+	}
+
+	group = 'net.fabricmc.matcher'
+	version = rootProject.version
+
+	def ENV = System.getenv()
+
+	checkstyle {
+		configFile = rootProject.file("checkstyle.xml")
+		toolVersion = rootProject.checkstyle_version
+	}
+
+	spotless {
+		lineEndings = com.diffplug.spotless.LineEnding.UNIX
+
+		java {
+			removeUnusedImports()
+			importOrder('java.', 'javax.', '', 'net.fabricmc.', 'matcher.')
+			indentWithTabs()
+			trimTrailingWhitespace()
+		}
+	}
+
+	extraJavaModuleInfo {
+		failOnMissingModuleInfo.set(false) // because of transitive dependencies
+
+		// JCommander
+		automaticModule("com.beust:jcommander", "jcommander")
+
+		// CFR
+		automaticModule("net.fabricmc:cfr", "cfr")
+
+		// Vineflower
+		automaticModule("org.vineflower:vineflower", "org.vineflower.vineflower")
+
+		// Procyon
+		automaticModule("org.bitbucket.mstrobel:procyon-compilertools", "procyon.compilertools")
+
+		// JADX
+		automaticModule("io.github.skylot:jadx-core", "jadx.core")
+		automaticModule("io.github.skylot:jadx-java-input", "jadx.plugins.java_input")
+	}
+
+	java {
+		withJavadocJar()
+		withSourcesJar()
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.encoding = "UTF-8"
+	}
+
+	tasks.withType(com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configureEach {
+		// https://github.com/johnrengelman/shadow/issues/882#issuecomment-1715703146
+		// Defer the resolution  of 'runtimeClasspath'. This is an issue in the shadow
+		// plugin that it automatically accesses the files in 'runtimeClasspath' while
+		// Gradle is building the task graph. The three lines below work around that.
+		inputs.files(project.configurations.runtimeClasspath)
+		configurations = Collections.emptyList()
+
+		doFirst {
+			configurations = Collections.singletonList(project.configurations.runtimeClasspath)
+		}
+	}
+
+	javadoc {
+		options.addBooleanOption('html5', true)
+
+		// disable 'missing' warnings
+		options.addStringOption('Xdoclint:all,-missing', '-quiet')
+	}
+
+	publishing {
+		publications {
+			"$project.name"(MavenPublication) {
+				from components.java
+			}
+		}
+
+		repositories {
+			if (ENV.MAVEN_URL) {
+				repositories.maven {
+					name = "fabric"
+					url = ENV.MAVEN_URL
+					credentials {
+						username = ENV.MAVEN_USERNAME
+						password = ENV.MAVEN_PASSWORD
+					}
 				}
 			}
 		}
 	}
-}
 
-// Publish the fat platform specific jars to GitHub releases
-publishMods {
-	changelog = providers.environmentVariable("CHANGELOG").getOrElse("No changelog provided")
-	type = STABLE
-	dryRun = providers.environmentVariable("GITHUB_TOKEN").map { false }.getOrElse(true)
+	// Publish the fat platform specific jars to GitHub releases
+	publishMods {
+		changelog = providers.environmentVariable("CHANGELOG").getOrElse("No changelog provided")
+		type = STABLE
+		dryRun = providers.environmentVariable("GITHUB_TOKEN").map { false }.getOrElse(true)
 
-	file = jar.archiveFile
+		file = jar.archiveFile
 
-	platforms.forEach { platform ->
-		additionalFiles.from tasks.named(platform + "Jar", ShadowJar).map { it.archiveFile }
-	}
+		platforms.forEach { platform ->
+			additionalFiles.from tasks.named(platform + "Jar", ShadowJar).map { it.archiveFile }
+		}
 
-	github {
-		accessToken = providers.environmentVariable("GITHUB_TOKEN")
-		repository = providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("FabricMC/dryrun")
-		commitish = providers.environmentVariable("GITHUB_REF_NAME").getOrElse("dryrun")
+		github {
+			accessToken = providers.environmentVariable("GITHUB_TOKEN")
+			repository = providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("FabricMC/dryrun")
+			commitish = providers.environmentVariable("GITHUB_REF_NAME").getOrElse("dryrun")
+		}
 	}
 }

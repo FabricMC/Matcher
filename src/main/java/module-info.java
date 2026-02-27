@@ -1,15 +1,17 @@
 module matcher {
-	exports matcher.config;
-	exports matcher.srcprocess;
+	exports matcher.model.config;
+	exports matcher.gui.srcprocess;
 	exports matcher.gui;
-	exports matcher.gui.tab;
-	exports matcher.type;
-	exports matcher.gui.menu;
-	exports matcher.mapping;
-	exports matcher.classifier;
-	exports matcher;
-	exports matcher.bcremap;
-	exports matcher.serdes;
+	exports matcher.gui.ui;
+	exports matcher.gui.ui.menu;
+	exports matcher.gui.ui.tab;
+	exports matcher.model.type;
+	exports matcher.model;
+	exports matcher.model.bcremap;
+	exports matcher.model.classifier;
+	exports matcher.model.mapping;
+	exports matcher.core;
+	exports matcher.core.serdes;
 
 	requires transitive org.slf4j;
 	requires cfr;
@@ -29,6 +31,7 @@ module matcher {
 	requires jadx.core;
 	requires jadx.plugins.java_input;
 	requires transitive net.fabricmc.mappingio;
+	requires jcommander;
 
-	uses matcher.Plugin;
+	uses matcher.core.Plugin;
 }

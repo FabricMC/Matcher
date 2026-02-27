@@ -8,7 +8,13 @@ pluginManagement {
 		id 'org.openjfx.javafxplugin' version "${javafx_plugin_version}"
 		id 'org.gradlex.extra-java-module-info' version "${extra_java_module_info_version}"
 		id 'com.gradleup.shadow' version "${shadow_version}"
+		id 'me.modmuss50.mod-publish-plugin' version "${mod_publish_plugin_version}"
 	}
 }
 
 rootProject.name = 'matcher'
+
+include 'matcher-model'
+include 'matcher-core'
+include 'matcher-cli'
+include 'matcher-gui'

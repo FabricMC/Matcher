@@ -1,0 +1,24 @@
+module matcher.gui {
+	requires cfr;
+	requires com.github.javaparser.core;
+	requires org.objectweb.asm.util;
+	requires org.vineflower.vineflower;
+	requires procyon.compilertools;
+	requires jadx.core;
+	requires jadx.plugins.java_input;
+	requires transitive javafx.base;
+	requires transitive javafx.controls;
+	requires transitive javafx.graphics;
+	requires transitive javafx.web;
+	requires transitive matcher.core;
+
+	uses matcher.core.Plugin;
+
+	exports matcher.gui;
+	exports matcher.gui.srcprocess;
+	exports matcher.gui.ui;
+	exports matcher.gui.ui.menu;
+	exports matcher.gui.ui.tab;
+
+	opens matcher.gui.cli to jcommander;
+}
