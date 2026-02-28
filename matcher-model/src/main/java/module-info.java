@@ -7,6 +7,7 @@ module matcher.model {
 	requires transitive org.objectweb.asm;
 	requires transitive org.objectweb.asm.tree;
 	requires transitive org.slf4j;
+	requires java.net.http;
 
 	exports matcher.model;
 	exports matcher.model.bcremap;

@@ -1,12 +1,8 @@
 package matcher.core;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -102,11 +98,11 @@ public class Matcher {
 			List<InputFile> cpFilesA, List<InputFile> cpFilesB,
 			String nonObfuscatedClassPatternA, String nonObfuscatedClassPatternB, String nonObfuscatedMemberPatternA, String nonObfuscatedMemberPatternB,
 			DoubleConsumer progressReceiver) throws IOException {
-		List<Path> pathsA = resolvePaths(inputDirs, inputFilesA);
-		List<Path> pathsB = resolvePaths(inputDirs, inputFilesB);
-		List<Path> sharedClassPath = resolvePaths(inputDirs, cpFiles);
-		List<Path> classPathA = resolvePaths(inputDirs, cpFilesA);
-		List<Path> classPathB = resolvePaths(inputDirs, cpFilesB);
+		List<Path> pathsA = InputFile.resolve(inputFilesA, inputDirs);
+		List<Path> pathsB = InputFile.resolve(inputFilesB, inputDirs);
+		List<Path> sharedClassPath = InputFile.resolve(cpFiles, inputDirs);
+		List<Path> classPathA = InputFile.resolve(cpFilesA, inputDirs);
+		List<Path> classPathB = InputFile.resolve(cpFilesB, inputDirs);
 
 		ProjectConfig config = new ProjectConfig.Builder(pathsA, pathsB)
 				.classPathA(new ArrayList<>(classPathA))
@@ -123,53 +119,6 @@ public class Matcher {
 
 		reset();
 		init(config, progressReceiver);
-	}
-
-	public static Path resolvePath(Collection<Path> inputDirs, InputFile inputFile) throws IOException {
-		List<Path> ret = resolvePaths(inputDirs, Collections.singletonList(inputFile));
-
-		return ret.get(0);
-	}
-
-	public static List<Path> resolvePaths(Collection<Path> inputDirs, Collection<InputFile> inputFiles) throws IOException {
-		List<Path> ret = new ArrayList<>(inputFiles.size());
-
-		inputFileLoop: for (InputFile inputFile : inputFiles) {
-			if (inputFile.pathHint != null) {
-				if (inputFile.pathHint.isAbsolute()) {
-					if (Files.isRegularFile(inputFile.pathHint) && inputFile.equals(inputFile.pathHint)) {
-						ret.add(inputFile.pathHint);
-						continue inputFileLoop;
-					}
-				} else {
-					for (Path inputDir : inputDirs) {
-						Path file = inputDir.resolve(inputFile.pathHint);
-
-						if (Files.isRegularFile(file) && inputFile.equals(file)) {
-							ret.add(file);
-							continue inputFileLoop;
-						}
-					}
-				}
-			}
-
-			for (Path inputDir : inputDirs) {
-				try (Stream<Path> matches = Files.find(inputDir, Integer.MAX_VALUE, (path, attr) -> inputFile.equals(path), FileVisitOption.FOLLOW_LINKS)) {
-					Path file = matches.findFirst().orElse(null);
-
-					if (file != null) {
-						ret.add(file);
-						continue inputFileLoop;
-					}
-				} catch (UncheckedIOException e) {
-					throw e.getCause();
-				}
-			}
-
-			throw new IOException("can't find input "+inputFile);
-		}
-
-		return ret;
 	}
 
 	public void match(ClassInstance a, ClassInstance b) {

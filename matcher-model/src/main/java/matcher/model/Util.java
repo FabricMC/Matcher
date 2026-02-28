@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
@@ -20,8 +19,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -72,10 +73,19 @@ public class Util {
 				try {
 					fs = FileSystems.getFileSystem(uri);
 					existing = true;
-					autoClose = false;
 				} catch (FileSystemNotFoundException e) {
 					fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 					existing = false;
+				}
+
+				AtomicInteger count = usedFsMap.get(fs);
+
+				if (count != null) {
+					count.incrementAndGet();
+				} else if (!existing && autoClose) {
+					usedFsMap.put(fs, new AtomicInteger());
+				} else {
+					autoClose = false;
 				}
 			}
 
@@ -89,20 +99,30 @@ public class Util {
 					return FileVisitResult.CONTINUE;
 				}
 			});
-		} catch (IOException e) {
-			closeSilently(fs);
-			throw new UncheckedIOException(e);
-		} catch (URISyntaxException e) {
-			closeSilently(fs);
-			throw new RuntimeException(e);
 		} catch (Throwable t) {
-			closeSilently(fs);
-			throw t;
+			if (autoClose) autoCloseFs(fs);
+
+			if (t instanceof IOException) {
+				throw new UncheckedIOException((IOException) t);
+			} else if (t instanceof RuntimeException) {
+				throw (RuntimeException) t;
+			} else {
+				throw new RuntimeException(t);
+			}
 		}
 
-		if (autoClose) closeSilently(fs);
+		if (autoClose) autoCloseFs(fs);
 
 		return autoClose || existing ? null : fs;
+	}
+
+	private static synchronized void autoCloseFs(FileSystem fs) {
+		AtomicInteger count = usedFsMap.get(fs);
+
+		if (count.decrementAndGet() == 0) {
+			usedFsMap.remove(fs);
+			closeSilently(fs);
+		}
 	}
 
 	public static boolean clearDir(Path path, Predicate<Path> disallowed) throws IOException {
@@ -378,5 +398,6 @@ public class Util {
 	}
 
 	private static final Logger logger = LoggerFactory.getLogger(Util.class);
+	private static final Map<FileSystem, AtomicInteger> usedFsMap = new IdentityHashMap<>();
 	public static final Object asmNodeSync = new Object();
 }

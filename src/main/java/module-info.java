@@ -32,6 +32,7 @@ module matcher {
 	requires jadx.plugins.java_input;
 	requires transitive net.fabricmc.mappingio;
 	requires jcommander;
+	requires java.net.http;
 
 	uses matcher.core.Plugin;
 }

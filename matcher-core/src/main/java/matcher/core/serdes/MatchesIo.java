@@ -86,6 +86,7 @@ public class MatchesIo {
 						long size = InputFile.unknownSize;
 						byte[] hash = null;
 						HashType hashType = null;
+						String url = null; // TODO: save url?
 						int fileStart;
 
 						if (sizeEnd < 0) { // v1
@@ -114,7 +115,7 @@ public class MatchesIo {
 							}
 						}
 
-						inputFiles.add(new InputFile(line.substring(fileStart), size, hash, hashType));
+						inputFiles.add(new InputFile(line.substring(fileStart), size, hash, hashType, url));
 					} else {
 						switch (line.substring(1, line.length() - 1)) {
 						case "a":
