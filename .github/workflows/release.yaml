@@ -18,7 +18,7 @@ jobs:
           distribution: "temurin"
 
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/actions/wrapper-validation@v4
 
       - uses: FabricMC/fabric-action-scripts@v2
         id: changelog
