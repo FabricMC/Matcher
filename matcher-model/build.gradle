@@ -1,4 +1,11 @@
-archivesBaseName = 'matcher-model'
+plugins {
+	id 'matcher.common'
+	id 'matcher.publishing.maven'
+}
+
+base {
+	archivesName = 'matcher-model'
+}
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_11

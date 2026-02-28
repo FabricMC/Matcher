@@ -1,0 +1,16 @@
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		mavenCentral();
+	}
+
+	// Needed to read the main projects properties
+	def props = new Properties()
+	file('../gradle.properties').newInputStream().withCloseable {
+		props.load(it)
+	}
+
+	plugins {
+		id 'com.diffplug.spotless' version "${props.spotless_version}"
+	}
+}

@@ -1,8 +1,14 @@
 plugins {
+	id 'matcher.common'
+	id 'matcher.publishing.maven'
+	id 'matcher.publishing.github.no-natives'
+	id 'org.gradlex.extra-java-module-info'
 	id 'application'
 }
 
-archivesBaseName = 'matcher-cli'
+base {
+	archivesName = 'matcher-cli'
+}
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
@@ -26,7 +32,13 @@ dependencies {
 	runtimeOnly "org.tinylog:slf4j-tinylog:${tinylog_version}"
 }
 
+extraJavaModuleInfo {
+	// JCommander
+	automaticModule("com.beust:jcommander", "jcommander")
+}
+
 application {
+	mainModule = 'matcher.cli'
 	mainClass = 'matcher.cli.Main'
 }
 
