@@ -1,0 +1,51 @@
+import com.diffplug.spotless.LineEnding
+
+plugins {
+	id 'java-library'
+	id 'checkstyle'
+	id 'com.diffplug.spotless'
+	id 'eclipse'
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = "Fabric"
+		url = 'https://maven.fabricmc.net/'
+	}
+}
+
+group = "net.fabricmc.matcher"
+version = rootProject.version
+
+checkstyle {
+	configFile = rootProject.file("checkstyle.xml")
+	toolVersion = rootProject.checkstyle_version
+}
+
+spotless {
+	lineEndings = LineEnding.UNIX
+
+	java {
+		removeUnusedImports()
+		importOrder('java.', 'javax.', '', 'net.fabricmc.', 'matcher.')
+		indentWithTabs()
+		trimTrailingWhitespace()
+	}
+}
+
+java {
+	withJavadocJar()
+	withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+}
+
+javadoc {
+	options.addBooleanOption('html5', true)
+
+	// disable 'missing' warnings
+	options.addStringOption('Xdoclint:all,-missing', '-quiet')
+}

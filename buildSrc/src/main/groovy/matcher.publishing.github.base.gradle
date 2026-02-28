@@ -1,0 +1,44 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.internal.DefaultDependencyFilter
+
+plugins {
+	id 'com.gradleup.shadow'
+	id 'me.modmuss50.mod-publish-plugin'
+}
+
+// https://github.com/GradleUp/shadow/issues/882#issuecomment-1792404308
+tasks.withType(ShadowJar).configureEach {
+	// Do not resolve too early through 'dependencyFilter'
+	dependencyFilter = new NoResolveDependencyFilter(project)
+}
+
+class NoResolveDependencyFilter extends DefaultDependencyFilter {
+	NoResolveDependencyFilter(Project project) {
+		super(project)
+	}
+
+	@Override
+	FileCollection resolve(FileCollection configuration) {
+		return configuration
+	}
+}
+
+// Disable the default shadowJar task
+shadowJar {
+	enabled = false
+	archiveClassifier = 'disabled' // prevent conflicts with other tasks potentially using the 'all' classifier
+}
+
+// Publish the fat jars to GitHub releases
+publishMods {
+	changelog = providers.environmentVariable("CHANGELOG").getOrElse("No changelog provided")
+	type = STABLE
+	dryRun = providers.environmentVariable("GITHUB_TOKEN").map { false }.getOrElse(true)
+
+	github {
+		accessToken = providers.environmentVariable("GITHUB_TOKEN")
+		repository = providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("FabricMC/dryrun")
+		commitish = providers.environmentVariable("GITHUB_REF_NAME").getOrElse("dryrun")
+	}
+}
+

@@ -1,0 +1,47 @@
+import com.diffplug.spotless.LineEnding
+
+plugins {
+	id 'groovy-gradle-plugin'
+	id 'com.diffplug.spotless'
+}
+
+repositories {
+	gradlePluginPortal()
+	mavenCentral()
+}
+
+// Needed to read the main projects properties
+def props = new Properties()
+file('../gradle.properties').newInputStream().withCloseable {
+	props.load(it)
+}
+
+spotless {
+	lineEndings = LineEnding.UNIX
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+
+	if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(17)
+		}
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	it.options.release = 17
+}
+
+dependencies {
+	implementation "com.puppycrawl.tools:checkstyle:${props.getProperty('checkstyle_version')}"
+	implementation "com.diffplug.spotless:spotless-plugin-gradle:${props.getProperty('spotless_version')}"
+	implementation "org.openjfx:javafx-plugin:${props.getProperty('javafx_plugin_version')}"
+	implementation "org.gradlex:extra-java-module-info:${props.getProperty('extra_java_module_info_version')}"
+	implementation "com.gradleup.shadow:shadow-gradle-plugin:${props.getProperty('shadow_version')}"
+	implementation "me.modmuss50:mod-publish-plugin:${props.getProperty('mod_publish_plugin_version')}"
+}
+
