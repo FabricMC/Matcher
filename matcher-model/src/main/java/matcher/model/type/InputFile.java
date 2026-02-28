@@ -256,7 +256,6 @@ public final class InputFile {
 		public final String algorithm;
 	}
 
-
 	private static synchronized Path getDlTmp(boolean create) {
 		Path ret = dlTmp;
 		if (ret != null || !create) return ret;

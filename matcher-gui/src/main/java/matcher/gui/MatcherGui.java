@@ -209,7 +209,7 @@ public class MatcherGui extends Application {
 				validProjectConfigArgPresent = true;
 				break;
 
-				// GUI args
+			// GUI args
 
 			case "--hide-unmapped-a":
 				hideUnmappedA = true;

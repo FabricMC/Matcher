@@ -10,7 +10,7 @@
 	<!-- Exclude all 'module-info.java' files -->
 	<!-- See https://github.com/checkstyle/checkstyle/issues/3059 -->
 	<module name="BeforeExecutionExclusionFileFilter">
-		<property name="fileNamePattern" value="module\-info\.java|matcher/gui/ui/tab/HtmlTextifier\.java$"/>
+		<property name="fileNamePattern" value="module\-info\.java$"/>
 	</module>
 
 	<module name="NewlineAtEndOfFile"/>
