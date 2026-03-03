@@ -21,14 +21,16 @@ import javafx.css.Stylesheet;
 import javafx.css.converter.ColorConverter;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Cell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.paint.Color;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import matcher.core.Matcher;
 import matcher.gui.MatcherGui;
 import matcher.gui.MatcherGui.SortKey;
 import matcher.model.NameType;
@@ -64,7 +66,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 
 		// member list
 
-		memberList.setCellFactory(ignore -> new SrcListCell<MemberInstance<?>>());
+		memberList.setCellFactory(ignore -> new SrcListCell<>());
 		memberList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
 			if (suppressChangeEvents || oldValue == newValue) return;
 
@@ -93,7 +95,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 
 		// method var list
 
-		varList.setCellFactory(ignore -> new SrcListCell<MethodVarInstance>());
+		varList.setCellFactory(ignore -> new SrcListCell<>());
 		varList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
 			if (suppressChangeEvents || oldValue == newValue) return;
 
@@ -124,7 +126,8 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		try {
 			css = parser.parse(MatcherGui.getThemeCss(Config.getTheme()));
 		} catch (IOException e) {
-			Matcher.LOGGER.error("CSS parsing failed", e);
+			LOGGER.error("CSS parsing failed", e);
+			gui.showAlert(AlertType.ERROR, "Theme error", "Failed to load theme CSS", e.getMessage());
 			return;
 		}
 
@@ -151,11 +154,12 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 					.reduce((first, second) -> second);
 			if (textColorDecl.isEmpty()) continue;
 
+			@SuppressWarnings("unchecked")
 			Color color = ColorConverter.getInstance().convert(textColorDecl.get().getParsedValue(), null);
 
 			if (lowSimilarityStylePresent) lowSimilarityCellTextColor = color;
 			if (highSimilarityStylePresent) highSimilarityCellTextColor = color;
-		};
+		}
 	}
 
 	private Node createClassList() {
@@ -206,7 +210,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		HIGH_MATCH_SIMILARITY("high-match-similarity-cell");
 
 		static {
-			cssNames = Arrays.stream(values())
+			CSS_NAMES = Arrays.stream(values())
 					.map(e -> e.cssName)
 					.collect(Collectors.toList());
 		}
@@ -215,17 +219,17 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 			this.cssName = cssName;
 		}
 
+		public static final List<String> CSS_NAMES;
 		public final String cssName;
-		public static final List<String> cssNames;
 	}
 
 	private class SrcTreeCell extends StyledTreeCell<Object> {
 		@Override
 		protected String getText(Object item) {
-			if (item instanceof String) {
-				return (String) item;
-			} else if (item instanceof Matchable<?>) {
-				return getCellText((Matchable<?>) item, false);
+			if (item instanceof String string) {
+				return string;
+			} else if (item instanceof Matchable<?> matchable) {
+				return getCellText(matchable, false);
 			} else {
 				return "";
 			}
@@ -236,7 +240,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 			if (cell.getItem() instanceof Matchable<?>) {
 				setCellStyle(cell, (Matchable<?>) cell.getItem());
 			} else {
-				cell.getStyleClass().removeAll(CellStyleClass.cssNames);
+				cell.getStyleClass().removeAll(CellStyleClass.CSS_NAMES);
 			}
 		}
 	}
@@ -266,7 +270,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 				styleClass = CellStyleClass.HIGH_MATCH_SIMILARITY;
 			}
 		} else {
-			final float epsilon = 1e-5f; // float rounding error
+			final float epsilon = 1e-5F; // float rounding error
 			float similarity = item.getSimilarity();
 
 			if (similarity < epsilon) {
@@ -277,26 +281,26 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 				cell.setTextFill(null);
 				if (lowSimilarityCellTextColor == null || highSimilarityCellTextColor == null) return;
 
-				similarity = Math.round((similarity / diffColorStepAlignment)) * diffColorStepAlignment;
+				similarity = Math.round(similarity / DIFF_COLOR_STEP_ALIGNMENT) * DIFF_COLOR_STEP_ALIGNMENT;
 				int similarityAsInt = (int) (similarity * 100);
 				Color textColor;
 
 				switch (Config.getTheme().getDiffColorInterpolationMode()) {
 				case RGB:
-					textColor = similarityToColorRgb.get(similarityAsInt);
+					textColor = SIMILARITY_TO_COLOR_RGB.get(similarityAsInt);
 
 					if (textColor == null) {
 						textColor = interpolateRgb(lowSimilarityCellTextColor, highSimilarityCellTextColor, similarity);
-						similarityToColorRgb.put(similarityAsInt, textColor);
+						SIMILARITY_TO_COLOR_RGB.put(similarityAsInt, textColor);
 					}
 
 					break;
 				case HSB:
-					textColor = similarityToColorHsb.get(similarityAsInt);
+					textColor = SIMILARITY_TO_COLOR_HSB.get(similarityAsInt);
 
 					if (textColor == null) {
 						textColor = interpolateHsb(lowSimilarityCellTextColor, highSimilarityCellTextColor, similarity);
-						similarityToColorHsb.put(similarityAsInt, textColor);
+						SIMILARITY_TO_COLOR_HSB.put(similarityAsInt, textColor);
 					}
 
 					break;
@@ -309,7 +313,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 			}
 		}
 
-		cell.getStyleClass().removeAll(CellStyleClass.cssNames);
+		cell.getStyleClass().removeAll(CellStyleClass.CSS_NAMES);
 		if (styleClass != null) cell.getStyleClass().add(styleClass.cssName);
 	}
 
@@ -439,14 +443,14 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 	public MethodInstance getSelectedMethod() {
 		MemberInstance<?> member = memberList.getSelectionModel().getSelectedItem();
 
-		return member instanceof MethodInstance ? (MethodInstance) member : null;
+		return member instanceof MethodInstance method ? method : null;
 	}
 
 	@Override
 	public FieldInstance getSelectedField() {
 		MemberInstance<?> member = memberList.getSelectionModel().getSelectedItem();
 
-		return member instanceof FieldInstance ? (FieldInstance) member : null;
+		return member instanceof FieldInstance field ? field : null;
 	}
 
 	@Override
@@ -491,8 +495,8 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 
 		case THEME_CHANGED:
 			retrieveCellTextColors();
-			similarityToColorRgb.clear();
-			similarityToColorHsb.clear();
+			SIMILARITY_TO_COLOR_RGB.clear();
+			SIMILARITY_TO_COLOR_HSB.clear();
 		case DIFF_COLORS_TOGGLED:
 			updateLists(true, true);
 			break;
@@ -629,50 +633,32 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 
 	@SuppressWarnings("unchecked")
 	private Comparator<ClassInstance> getClassComparator() {
-		switch (gui.getSortKey()) {
-		case Name:
-			return Comparator.comparing(this::getName, clsNameComparator);
-		case MappedName:
-			return Comparator.comparing(this::getMappedName, clsNameComparator);
-		case MatchStatus:
-			return ((Comparator<ClassInstance>) matchStatusComparator).thenComparing(this::getName, clsNameComparator);
-		case Similarity:
-			return ((Comparator<ClassInstance>) similarityComparator).thenComparing(this::getName, clsNameComparator);
-		}
-
-		throw new IllegalStateException("unhandled sort key: "+gui.getSortKey());
+		return switch (gui.getSortKey()) {
+		case Name -> Comparator.comparing(this::getName, CLASS_NAME_COMPARATOR);
+		case MappedName -> Comparator.comparing(this::getMappedName, CLASS_NAME_COMPARATOR);
+		case MatchStatus -> ((Comparator<ClassInstance>) MATCH_STATUS_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		case Similarity -> ((Comparator<ClassInstance>) SIMILARITY_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		};
 	}
 
 	@SuppressWarnings("unchecked")
 	private Comparator<MemberInstance<?>> getMemberComparator() {
-		switch (gui.getSortKey()) {
-		case Name:
-			return memberTypeComparator.thenComparing(this::getName, clsNameComparator);
-		case MappedName:
-			return memberTypeComparator.thenComparing(this::getMappedName, clsNameComparator);
-		case MatchStatus:
-			return ((Comparator<MemberInstance<?>>) matchStatusComparator).thenComparing(memberTypeComparator).thenComparing(this::getName, clsNameComparator);
-		case Similarity:
-			return ((Comparator<MemberInstance<?>>) similarityComparator).thenComparing(memberTypeComparator).thenComparing(this::getName, clsNameComparator);
-		}
-
-		throw new IllegalStateException("unhandled sort key: "+gui.getSortKey());
+		return switch (gui.getSortKey()) {
+		case Name -> MEMBER_TYPE_COMPARATOR.thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		case MappedName -> MEMBER_TYPE_COMPARATOR.thenComparing(this::getMappedName, CLASS_NAME_COMPARATOR);
+		case MatchStatus -> ((Comparator<MemberInstance<?>>) MATCH_STATUS_COMPARATOR).thenComparing(MEMBER_TYPE_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		case Similarity -> ((Comparator<MemberInstance<?>>) SIMILARITY_COMPARATOR).thenComparing(MEMBER_TYPE_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		};
 	}
 
 	@SuppressWarnings("unchecked")
 	private Comparator<MethodVarInstance> getVarComparator() {
-		switch (gui.getSortKey()) {
-		case Name:
-			return varTypeComparator.thenComparing(this::getName, clsNameComparator);
-		case MappedName:
-			return varTypeComparator.thenComparing(this::getMappedName, clsNameComparator);
-		case MatchStatus:
-			return ((Comparator<MethodVarInstance>) matchStatusComparator).thenComparing(varTypeComparator).thenComparing(this::getName, clsNameComparator);
-		case Similarity:
-			return ((Comparator<MethodVarInstance>) similarityComparator).thenComparing(varTypeComparator).thenComparing(this::getName, clsNameComparator);
-		}
-
-		throw new IllegalStateException("unhandled sort key: "+gui.getSortKey());
+		return switch (gui.getSortKey()) {
+		case Name -> VAR_TYPE_COMPARATOR.thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		case MappedName -> VAR_TYPE_COMPARATOR.thenComparing(this::getMappedName, CLASS_NAME_COMPARATOR);
+		case MatchStatus -> ((Comparator<MethodVarInstance>) MATCH_STATUS_COMPARATOR).thenComparing(VAR_TYPE_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		case Similarity -> ((Comparator<MethodVarInstance>) SIMILARITY_COMPARATOR).thenComparing(VAR_TYPE_COMPARATOR).thenComparing(this::getName, CLASS_NAME_COMPARATOR);
+		};
 	}
 
 	private String getName(Matchable<?> m) {
@@ -727,7 +713,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		return components;
 	}
 
-	private static final Comparator<MemberInstance<?>> memberTypeComparator = (a, b) -> {
+	private static final Comparator<MemberInstance<?>> MEMBER_TYPE_COMPARATOR = (a, b) -> {
 		boolean aIsMethod = a instanceof MethodInstance;
 		boolean bIsMethod = b instanceof MethodInstance;
 
@@ -738,7 +724,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		}
 	};
 
-	private static final Comparator<MethodVarInstance> varTypeComparator = (a, b) -> {
+	private static final Comparator<MethodVarInstance> VAR_TYPE_COMPARATOR = (a, b) -> {
 		if (a.isArg() == b.isArg()) {
 			return 0;
 		} else {
@@ -746,7 +732,7 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		}
 	};
 
-	private static final Comparator<? extends Matchable<?>> matchStatusComparator = (a, b) -> {
+	private static final Comparator<? extends Matchable<?>> MATCH_STATUS_COMPARATOR = (a, b) -> {
 		// sort order: unmatched partially-matched fully-matched-shallow fully-matched-recursive unmatchable
 
 		boolean aMatchable = a.hasPotentialMatch();
@@ -781,15 +767,13 @@ public class MatchPaneSrc extends SplitPane implements IFwdGuiComponent, ISelect
 		return 0;
 	};
 
-	private static final Comparator<? extends Matchable<?>> similarityComparator = (a, b) -> {
-		return Float.compare(a.getSimilarity(), b.getSimilarity());
-	};
-
-	private static final Comparator<String> clsNameComparator = Util::compareNatural;
-	private static final int diffColorSteps = 20;
-	private static final float diffColorStepAlignment = 1f / diffColorSteps;
-	private static final Map<Integer, Color> similarityToColorRgb = new HashMap<>(diffColorSteps / 2 + 1);
-	private static final Map<Integer, Color> similarityToColorHsb = new HashMap<>(diffColorSteps / 2 + 1);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MatchPaneSrc.class);
+	private static final Comparator<? extends Matchable<?>> SIMILARITY_COMPARATOR = (a, b) -> Float.compare(a.getSimilarity(), b.getSimilarity());
+	private static final Comparator<String> CLASS_NAME_COMPARATOR = Util::compareNatural;
+	private static final int DIFF_COLOR_STEPS = 20;
+	private static final float DIFF_COLOR_STEP_ALIGNMENT = 1f / DIFF_COLOR_STEPS;
+	private static final Map<Integer, Color> SIMILARITY_TO_COLOR_RGB = new HashMap<>(DIFF_COLOR_STEPS / 2 + 1);
+	private static final Map<Integer, Color> SIMILARITY_TO_COLOR_HSB = new HashMap<>(DIFF_COLOR_STEPS / 2 + 1);
 
 	private final MatcherGui gui;
 	private final Collection<IGuiComponent> components = new ArrayList<>();

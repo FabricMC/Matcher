@@ -4,6 +4,7 @@ plugins {
 	id 'matcher.common'
 	id 'matcher.publishing.maven'
 	id 'matcher.publishing.github.base'
+	id 'matcher.openrewrite.java17'
 	id 'org.openjfx.javafxplugin'
 	id 'org.gradlex.extra-java-module-info'
 	id 'application'

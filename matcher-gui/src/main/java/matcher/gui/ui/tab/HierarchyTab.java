@@ -31,7 +31,7 @@ public class HierarchyTab extends Tab implements IGuiComponent {
 		vBox.getChildren().add(classHierarchyTree);
 		vBox.getChildren().add(ifaceList);
 
-		Callback<TreeView<ClassInstance>, TreeCell<ClassInstance>> cellFactory = tree -> new TreeCell<ClassInstance>() { // makes entries in highLights bold
+		Callback<TreeView<ClassInstance>, TreeCell<ClassInstance>> cellFactory = tree -> new TreeCell<>() { // makes entries in highLights bold
 			@Override
 			protected void updateItem(ClassInstance item, boolean empty) {
 				super.updateItem(item, empty);

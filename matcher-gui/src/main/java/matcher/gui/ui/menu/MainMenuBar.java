@@ -24,8 +24,8 @@ public class MainMenuBar extends MenuBar implements IGuiComponent {
 	private <T extends Menu> T addMenu(T menu) {
 		getMenus().add(menu);
 
-		if (menu instanceof IGuiComponent) {
-			gui.addListeningComponent((IGuiComponent) menu);
+		if (menu instanceof IGuiComponent guiComponentMenu) {
+			gui.addListeningComponent(guiComponentMenu);
 		}
 
 		return menu;

@@ -17,8 +17,9 @@ import org.jetbrains.java.decompiler.main.extern.IContextSource.IOutputSink;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 import org.jetbrains.java.decompiler.main.extern.IResultSaver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import matcher.core.Matcher;
 import matcher.model.NameType;
 import matcher.model.type.ClassFeatureExtractor;
 import matcher.model.type.ClassInstance;
@@ -102,7 +103,7 @@ public class Vineflower implements Decompiler {
 			byte[] bytecode;
 
 			if ((bytecode = bytecodeByClsName.get(resource)) == null) {
-				throw new IOException("Requested class not in decompilation scope: "+resource);
+				throw new IOException("Requested class not in decompilation scope: " + resource);
 			}
 
 			return new ByteArrayInputStream(bytecode);
@@ -126,7 +127,7 @@ public class Vineflower implements Decompiler {
 
 		@Override
 		public void acceptClass(String qualifiedName, String fileName, String content, int[] mapping) {
-			if (DEBUG) Matcher.LOGGER.debug("acceptClass({}, {}, {}, {})", qualifiedName, fileName, content, Arrays.toString(mapping));
+			if (DEBUG) LOGGER.debug("acceptClass({}, {}, {}, {})", qualifiedName, fileName, content, Arrays.toString(mapping));
 
 			results.put(qualifiedName, content);
 		}
@@ -138,10 +139,11 @@ public class Vineflower implements Decompiler {
 		public void acceptOther(String path) { }
 
 		@Override
-		public void close() throws IOException { }
+		public void close() { }
 
-		private Map<String, String> results = new HashMap<>();
+		private final Map<String, String> results = new HashMap<>();
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(Vineflower.class);
 	private static final boolean DEBUG = false;
 }

@@ -66,7 +66,7 @@ public class ContentPane extends TabPane implements IFwdGuiComponent {
 
 		// hierarchy tab
 
-		if (showHierarchy) {
+		if (SHOW_HIERARCHY) {
 			HierarchyTab hTab = new HierarchyTab();
 			components.add(hTab);
 			getTabs().add(hTab);
@@ -91,12 +91,12 @@ public class ContentPane extends TabPane implements IFwdGuiComponent {
 		// add tab selection change listeners
 
 		getSelectionModel().selectedItemProperty().addListener((ov, oldTab, newTab) -> {
-			if (oldTab instanceof IGuiComponent.Selectable) {
-				((IGuiComponent.Selectable) oldTab).onSelectStateChange(false);
+			if (oldTab instanceof IGuiComponent.Selectable selectableOldTab) {
+				selectableOldTab.onSelectStateChange(false);
 			}
 
-			if (newTab instanceof IGuiComponent.Selectable) {
-				((IGuiComponent.Selectable) newTab).onSelectStateChange(true);
+			if (newTab instanceof IGuiComponent.Selectable selectableNewTab) {
+				selectableNewTab.onSelectStateChange(true);
 			}
 		});
 	}
@@ -106,7 +106,7 @@ public class ContentPane extends TabPane implements IFwdGuiComponent {
 		return components;
 	}
 
-	private static final boolean showHierarchy = false;
+	private static final boolean SHOW_HIERARCHY = false;
 
 	private final MatcherGui gui;
 	private final boolean isSource;

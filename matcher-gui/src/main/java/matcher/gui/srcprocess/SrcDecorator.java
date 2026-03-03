@@ -1,6 +1,7 @@
 package matcher.gui.srcprocess;
 
 import java.io.BufferedReader;
+import java.io.Serial;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,15 +29,16 @@ import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import matcher.core.Matcher;
 import matcher.model.NameType;
 import matcher.model.type.ClassInstance;
 import matcher.model.type.FieldInstance;
 import matcher.model.type.MethodInstance;
 import matcher.model.type.MethodVarInstance;
 
-public class SrcDecorator {
+public final class SrcDecorator {
 	public static String decorate(String src, ClassInstance cls, NameType nameType) {
 		String name = cls.getName(nameType);
 
@@ -47,7 +49,7 @@ public class SrcDecorator {
 			List<String> classNames = new ArrayList<>();
 			boolean firstDollar = true;
 
-			name = name.substring(nameStartPos, name.length());
+			name = name.substring(nameStartPos);
 
 			for (int i = 0; i < name.length(); i++) {
 				char ch = name.charAt(i);
@@ -62,7 +64,7 @@ public class SrcDecorator {
 				}
 			}
 
-			classNames.add(name.substring(0, name.length()));
+			classNames.add(name);
 
 			for (int i = classNames.size() - 1; i >= 0; i--) {
 				src = src.replace(classNames.get(i).replace('$', '.'), classNames.get(i));
@@ -96,7 +98,7 @@ public class SrcDecorator {
 		TypeResolver resolver = new TypeResolver();
 		resolver.setup(cls, nameType, cu);
 
-		cu.accept(remapVisitor, resolver);
+		cu.accept(REMAP_VISITOR, resolver);
 
 		HtmlPrinter printer = new HtmlPrinter(resolver);
 		cu.accept(printer, null);
@@ -106,12 +108,13 @@ public class SrcDecorator {
 
 	public static class SrcParseException extends RuntimeException {
 		SrcParseException(List<Problem> problems, String source) {
-			super("Parsing failed: "+problems);
+			super("Parsing failed: " + problems);
 
 			this.problems = problems.stream().map(Problem::toString).collect(Collectors.joining(System.lineSeparator()));
 			this.source = source;
 		}
 
+		@Serial
 		private static final long serialVersionUID = 6164216517595646716L;
 
 		public final String problems;
@@ -123,7 +126,7 @@ public class SrcDecorator {
 			// CFR will insert super statements in inner classes after any captured locals, which crashes JavaParser
 			// We can move the super statements around so there's no crash, so long as we can find what to move where
 			if (!problem.getMessage().startsWith("Parse error. Found \"super\"")
-					|| !problem.getLocation().isPresent()) {
+					|| problem.getLocation().isEmpty()) {
 				return null;
 			}
 
@@ -132,7 +135,7 @@ public class SrcDecorator {
 
 			while (start.getKind() != Kind.SUPER.getKind()) {
 				// If we can't find the super token for whatever reason no fixing can be done
-				if (!start.getNextToken().isPresent()) {
+				if (start.getNextToken().isEmpty()) {
 					return null;
 				}
 
@@ -143,7 +146,7 @@ public class SrcDecorator {
 
 			do {
 				// If we can't find the end of the super statement
-				if (!end.getNextToken().isPresent()) {
+				if (end.getNextToken().isEmpty()) {
 					return null;
 				}
 
@@ -154,7 +157,7 @@ public class SrcDecorator {
 
 			while (to.getKind() != Kind.LBRACE.getKind()) {
 				// If we can't find the method header the statement is in
-				if (!to.getPreviousToken().isPresent()) {
+				if (to.getPreviousToken().isEmpty()) {
 					return null;
 				}
 
@@ -162,9 +165,9 @@ public class SrcDecorator {
 			}
 
 			// Unpack the limits of each statement so it's clear what needs to move in the source
-			if (!to.getRange().isPresent()
-					|| !start.getRange().isPresent()
-					|| !end.getRange().isPresent()) {
+			if (to.getRange().isEmpty()
+					|| start.getRange().isEmpty()
+					|| end.getRange().isEmpty()) {
 				return null;
 			}
 
@@ -175,10 +178,10 @@ public class SrcDecorator {
 	}
 
 	private static String moveStatement(String source, Range slice, Position to) {
-		Matcher.LOGGER.debug("Shifting " + slice + " to " + to);
+		LOGGER.debug("Shifting {} to {}", slice, to);
 
-		//Remember that lines are counted from 1 not 0, so the indexes have to be offset backwards
-		List<String> lines = new BufferedReader(new StringReader(source)).lines().collect(Collectors.toList());
+		// Remember that lines are counted from 1 not 0, so the indexes have to be offset backwards
+		List<String> lines = new BufferedReader(new StringReader(source)).lines().toList();
 		String sliceLine;
 
 		if (slice.begin.line != slice.end.line) {
@@ -190,7 +193,7 @@ public class SrcDecorator {
 			}
 
 			String sliceEnd = lines.get(slice.end.line - 1);
-			sliceLine = insert.append(sliceEnd.substring(0, slice.end.column)).toString();
+			sliceLine = insert.append(sliceEnd, 0, slice.end.column).toString();
 		} else {
 			sliceLine = lines.get(slice.begin.line - 1).substring(slice.begin.column - 1, slice.end.column);
 		}
@@ -228,9 +231,9 @@ public class SrcDecorator {
 				n.setComment(c);
 			}
 
-			c.setContent("\n * "+comment.replace("\n", "\n * ")+'\n'+c.getContent());
+			c.setContent("\n * " + comment.replace("\n", "\n * ") + '\n' + c.getContent());
 		} else {
-			n.setComment(new JavadocComment("\n * "+comment.replace("\n", "\n * ")+"\n "));
+			n.setComment(new JavadocComment("\n * " + comment.replace("\n", "\n * ") + "\n "));
 		}
 	}
 
@@ -267,7 +270,10 @@ public class SrcDecorator {
 		handleComment(comment, n);
 	}
 
-	private static final VoidVisitorAdapter<TypeResolver> remapVisitor = new VoidVisitorAdapter<TypeResolver>() {
+	private SrcDecorator() {
+	}
+
+	private static final VoidVisitorAdapter<TypeResolver> REMAP_VISITOR = new VoidVisitorAdapter<>() {
 		@Override
 		public void visit(CompilationUnit n, TypeResolver resolver) {
 			n.getTypes().forEach(p -> p.accept(this, resolver));
@@ -285,7 +291,7 @@ public class SrcDecorator {
 
 		private void visitCls(TypeDeclaration<?> n, TypeResolver resolver) {
 			ClassInstance cls = resolver.getCls(n);
-			// Matcher.LOGGER.debug("cls {} = {} at {}", n.getName().getIdentifier(), cls, n.getRange());
+			// LOGGER.debug("cls {} = {} at {}", n.getName().getIdentifier(), cls, n.getRange());
 
 			if (cls != null) {
 				handleComment(cls.getMappedComment(), n);
@@ -297,7 +303,7 @@ public class SrcDecorator {
 		@Override
 		public void visit(ConstructorDeclaration n, TypeResolver resolver) {
 			MethodInstance m = resolver.getMethod(n);
-			// Matcher.LOGGER.debug("ctor {} = {} at {}", n.getName().getIdentifier(), m, n.getRange());
+			// LOGGER.debug("ctor {} = {} at {}", n.getName().getIdentifier(), m, n.getRange());
 
 			if (m != null) {
 				handleMethodComment(m, n, resolver);
@@ -317,7 +323,7 @@ public class SrcDecorator {
 		@Override
 		public void visit(MethodDeclaration n, TypeResolver resolver) {
 			MethodInstance m = resolver.getMethod(n);
-			// Matcher.LOGGER.debug("mth {}, = {} at {}", n.getName().getIdentifier(), m, n.getRange());
+			// LOGGER.debug("mth {}, = {} at {}", n.getName().getIdentifier(), m, n.getRange());
 
 			if (m != null) {
 				handleMethodComment(m, n, resolver);
@@ -337,7 +343,7 @@ public class SrcDecorator {
 
 			for (VariableDeclarator var : n.getVariables()) {
 				FieldInstance f = resolver.getField(var);
-				// Matcher.LOGGER.debug("fld {} = {} at {}", v.getName().getIdentifier(), f, v.getRange());
+				// LOGGER.debug("fld {} = {} at {}", v.getName().getIdentifier(), f, v.getRange());
 
 				if (f != null) {
 					if (f.getMappedComment() != null) {
@@ -357,4 +363,6 @@ public class SrcDecorator {
 			n.getAnnotations().forEach(p -> p.accept(this, arg));*/
 		}
 	};
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(SrcDecorator.class);
 }

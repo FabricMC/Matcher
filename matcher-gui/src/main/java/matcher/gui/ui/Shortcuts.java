@@ -9,7 +9,7 @@ import javafx.scene.input.KeyCombination;
 
 import matcher.gui.MatcherGui;
 
-public class Shortcuts {
+public final class Shortcuts {
 	public static void init(MatcherGui gui) {
 		Map<KeyCombination, Runnable> accelerators = gui.getScene().getAccelerators();
 
@@ -27,5 +27,8 @@ public class Shortcuts {
 		});
 		// I - ignore (toggle matchable)
 		accelerators.put(new KeyCodeCombination(KeyCode.I), () -> gui.getBottomPane().getMatchableButton().fireEvent(new ActionEvent()));
+	}
+
+	private Shortcuts() {
 	}
 }

@@ -22,8 +22,8 @@ class SaveMappingsPane extends GridPane {
 	}
 
 	private void init(boolean offerNamespaces) {
-		setHgap(GuiConstants.padding);
-		setVgap(GuiConstants.padding);
+		setHgap(GuiConstants.PADDING);
+		setVgap(GuiConstants.PADDING);
 
 		int col23Span = offerNamespaces ? 2 : 1;
 

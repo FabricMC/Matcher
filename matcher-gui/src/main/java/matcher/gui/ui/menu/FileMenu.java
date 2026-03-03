@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +22,8 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.fabricmc.mappingio.MappingReader;
 import net.fabricmc.mappingio.format.MappingFormat;
@@ -114,14 +115,14 @@ public class FileMenu extends Menu {
 		gui.onProjectChange();
 
 		gui.runProgressTask("Initializing files...",
-				progressReceiver -> MatchesIo.read(res.path, newConfig.paths, newConfig.verifyFiles, gui.getMatcher(), progressReceiver),
-				() -> gui.onProjectChange(),
+				progressReceiver -> MatchesIo.read(res.path, newConfig.paths(), newConfig.verifyFiles(), gui.getMatcher(), progressReceiver),
+				gui::onProjectChange,
 				Throwable::printStackTrace);
 	}
 
 	public ProjectLoadSettings requestProjectLoadSettings() {
 		Dialog<ProjectLoadSettings> dialog = new Dialog<>();
-		//dialog.initModality(Modality.APPLICATION_MODAL);
+		// dialog.initModality(Modality.APPLICATION_MODAL);
 		dialog.setResizable(true);
 		dialog.setTitle("Project paths");
 		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -134,9 +135,9 @@ public class FileMenu extends Menu {
 
 		ProjectLoadSettings settings = dialog.showAndWait().orElse(null);
 
-		if (settings != null && !settings.paths.isEmpty()) {
-			Config.setInputDirs(settings.paths);
-			Config.setVerifyInputFiles(settings.verifyFiles);
+		if (settings != null && !settings.paths().isEmpty()) {
+			Config.setInputDirs(settings.paths());
+			Config.setVerifyInputFiles(settings.verifyFiles());
 			Config.saveAsLast();
 		}
 
@@ -163,7 +164,7 @@ public class FileMenu extends Menu {
 			List<String> namespaces = MappingReader.getNamespaces(file, format);
 
 			Dialog<MappingsLoadSettings> dialog = new Dialog<>();
-			//dialog.initModality(Modality.APPLICATION_MODAL);
+			// dialog.initModality(Modality.APPLICATION_MODAL);
 			dialog.setResizable(true);
 			dialog.setTitle("Import Settings");
 			dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -171,21 +172,20 @@ public class FileMenu extends Menu {
 			LoadMappingsPane content = new LoadMappingsPane(namespaces);
 			dialog.getDialogPane().setContent(content);
 			dialog.setResultConverter(button -> button == ButtonType.OK ? content.getSettings() : null);
-			final MappingFormat loadFormat = format;
 
 			Optional<MappingsLoadSettings> result = dialog.showAndWait();
-			if (!result.isPresent()) return;
+			if (result.isEmpty()) return;
 
 			MappingsLoadSettings settings = result.get();
 			ClassEnvironment env = gui.getMatcher().getEnv();
 
-			Mappings.load(file, loadFormat,
+			Mappings.load(file, format,
 					settings.nsSource, settings.nsTarget,
 					settings.fieldSource, settings.fieldTarget,
-					(settings.a ? env.getEnvA() : env.getEnvB()),
+					settings.a ? env.getEnvA() : env.getEnvB(),
 					settings.replace);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Error while loading mappings", e);
 			gui.showAlert(AlertType.ERROR, "Load error", "Error while loading mappings", e.toString());
 			return;
 		}
@@ -202,11 +202,11 @@ public class FileMenu extends Menu {
 			if (format.hasSingleFile()) supportedExtensions.add(format.getGlobPattern());
 		}
 
-		ret.add(new FileChooser.ExtensionFilter("All supported", supportedExtensions));
-		ret.add(new FileChooser.ExtensionFilter("Any", "*.*"));
+		ret.add(new ExtensionFilter("All supported", supportedExtensions));
+		ret.add(new ExtensionFilter("Any", "*.*"));
 
 		for (MappingFormat format : formats) {
-			if (format.hasSingleFile()) ret.add(new FileChooser.ExtensionFilter(format.name, format.getGlobPattern()));
+			if (format.hasSingleFile()) ret.add(new ExtensionFilter(format.name, format.getGlobPattern()));
 		}
 
 		return ret;
@@ -222,7 +222,7 @@ public class FileMenu extends Menu {
 
 			for (MappingFormat f : MappingFormat.values()) {
 				if (f.hasSingleFile()) {
-					FileChooser.ExtensionFilter filter = new FileChooser.ExtensionFilter(f.name, "*."+f.fileExt);
+					FileChooser.ExtensionFilter filter = new ExtensionFilter(f.name, "*." + f.fileExt);
 					fileChooser.getExtensionFilters().add(filter);
 
 					if (f == format) fileChooser.setSelectedExtensionFilter(filter);
@@ -243,11 +243,12 @@ public class FileMenu extends Menu {
 
 				try {
 					if (!Util.clearDir(path, file -> !Files.isDirectory(file) && !file.getFileName().toString().endsWith(".mapping"))) {
+						LOGGER.error("Save location contains non-mapping files: {}", path);
 						gui.showAlert(AlertType.ERROR, "Save error", "Error while preparing save location", "The target directory contains non-mapping files.");
 						return;
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error("Error while preparing save location", e);
 					gui.showAlert(AlertType.ERROR, "Save error", "Error while preparing save location", e.getMessage());
 					return;
 				}
@@ -259,24 +260,27 @@ public class FileMenu extends Menu {
 			if (format == null) throw new IllegalStateException("mapping format detection failed");
 
 			if (format.hasSingleFile()) {
-				path = path.resolveSibling(path.getFileName().toString()+"."+format.fileExt);
+				path = path.resolveSibling(path.getFileName().toString() + "." + format.fileExt);
 			}
 		}
 
 		if (Files.exists(path)) {
-			if (Files.isDirectory(path) != !format.hasSingleFile()) {
+			if (Files.isDirectory(path) == format.hasSingleFile()) {
+				LOGGER.error("Selected file is of the wrong type: expected {}, got {}",
+						format.hasSingleFile() ? "file" : "directory",
+						Files.isDirectory(path) ? "directory" : "file");
 				gui.showAlert(AlertType.ERROR, "Save error", "Invalid file selection", "The selected file is of the wrong type.");
 				return;
 			}
 		}
 
 		Dialog<MappingsSaveSettings> dialog = new Dialog<>();
-		//dialog.initModality(Modality.APPLICATION_MODAL);
+		// dialog.initModality(Modality.APPLICATION_MODAL);
 		dialog.setResizable(true);
 		dialog.setTitle("Mappings export settings");
 		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-		SaveMappingsPane content = new SaveMappingsPane(format.hasNamespaces);
+		SaveMappingsPane content = new SaveMappingsPane(format.features().hasNamespaces());
 		dialog.getDialogPane().setContent(content);
 		dialog.setResultConverter(button -> button == ButtonType.OK ? content.getSettings() : null);
 		final Path savePath = path;
@@ -290,22 +294,22 @@ public class FileMenu extends Menu {
 					Files.deleteIfExists(savePath);
 				}
 
-				if (!Mappings.save(savePath, saveFormat, (settings.a ? env.getEnvA() : env.getEnvB()),
+				if (!Mappings.save(savePath, saveFormat, settings.a ? env.getEnvA() : env.getEnvB(),
 						settings.nsTypes, settings.nsNames, settings.verbosity, settings.forAnyInput, settings.fieldsFirst)) {
 					gui.showAlert(AlertType.WARNING, "Mapping save warning", "No mappings to save", "There are currently no names mapped to matched classes, so saving was aborted.");
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error("Error while saving mappings", e);
+				gui.showAlert(AlertType.ERROR, "Save error", "Error while saving mappings", e.toString());
 			}
 		});
 	}
 
 	private static boolean isDirEmpty(Path dir) {
 		try (Stream<Path> stream = Files.list(dir)) {
-			return !stream.anyMatch(ignore -> true);
+			return stream.noneMatch(ignore -> true);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Error while checking directory contents for {}", dir, e);
 			return false;
 		}
 	}
@@ -344,17 +348,17 @@ public class FileMenu extends Menu {
 	}
 
 	private static List<ExtensionFilter> getMatchesLoadExtensionFilters() {
-		return Arrays.asList(new FileChooser.ExtensionFilter("Matches", "*.match"));
+		return List.of(new ExtensionFilter("Matches", "*.match"));
 	}
 
 	private void saveMatches() {
-		SelectedFile res = MatcherGui.requestFile("Save matches file", gui.getScene().getWindow(), Arrays.asList(new FileChooser.ExtensionFilter("Matches", "*.match")), false);
+		SelectedFile res = MatcherGui.requestFile("Save matches file", gui.getScene().getWindow(), List.of(new ExtensionFilter("Matches", "*.match")), false);
 		if (res == null) return;
 
 		Path path = res.path;
 
 		if (!path.getFileName().toString().toLowerCase(Locale.ENGLISH).endsWith(".match")) {
-			path = path.resolveSibling(path.getFileName().toString()+".match");
+			path = path.resolveSibling(path.getFileName() + ".match");
 		}
 
 		try {
@@ -368,11 +372,11 @@ public class FileMenu extends Menu {
 				gui.showAlert(AlertType.WARNING, "Matches save warning", "No matches to save", "There are currently no matched classes, so saving was aborted.");
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
+			LOGGER.error("Error while saving matches", e);
+			gui.showAlert(AlertType.ERROR, "Save error", "Error while saving matches", e.toString());
 		}
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(FileMenu.class);
 	private final MatcherGui gui;
 }

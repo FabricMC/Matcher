@@ -44,14 +44,14 @@ public class ClassScoresTab extends Tab implements IGuiComponent {
 
 	static <T> TableView<ClassifierResult<T>> createClassifierTable() {
 		TableView<ClassifierResult<T>> ret = new TableView<>();
-		ret.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+		ret.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
 		TableColumn<ClassifierResult<T>, String> tab0 = new TableColumn<>("name");
 		tab0.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(data.getValue().getClassifier().getName()));
 		ret.getColumns().add(tab0);
 
 		TableColumn<ClassifierResult<T>, String> tab1 = new TableColumn<>("score");
-		tab1.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(String.format("%.2f", data.getValue().getScore())));
+		tab1.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>("%.2f".formatted(data.getValue().getScore())));
 		ret.getColumns().add(tab1);
 
 		TableColumn<ClassifierResult<T>, Double> tab2 = new TableColumn<>("weight");
@@ -59,7 +59,7 @@ public class ClassScoresTab extends Tab implements IGuiComponent {
 		ret.getColumns().add(tab2);
 
 		TableColumn<ClassifierResult<T>, String> tab3 = new TableColumn<>("w. score");
-		tab3.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(String.format("%.2f", data.getValue().getScore() * data.getValue().getClassifier().getWeight())));
+		tab3.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>("%.2f".formatted(data.getValue().getScore() * data.getValue().getClassifier().getWeight())));
 		ret.getColumns().add(tab3);
 
 		ret.setItems(FXCollections.observableArrayList());

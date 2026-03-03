@@ -1,9 +1,10 @@
 package matcher.gui.ui.tab;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Set;
 import java.util.concurrent.Future;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import matcher.gui.MatcherGui;
 import matcher.gui.srcprocess.HtmlUtil;
@@ -11,6 +12,7 @@ import matcher.gui.srcprocess.SrcDecorator;
 import matcher.gui.srcprocess.SrcDecorator.SrcParseException;
 import matcher.gui.ui.ISelectionProvider;
 import matcher.model.NameType;
+import matcher.model.Util;
 import matcher.model.type.ClassInstance;
 import matcher.model.type.Decompiler;
 import matcher.model.type.FieldInstance;
@@ -36,10 +38,10 @@ public class SourcecodeTab extends WebViewTab {
 
 		if (updateNeeded != UPDATE_NONE) update();
 
-		if (selectedMember instanceof MethodInstance) {
-			onMethodSelect((MethodInstance) selectedMember);
-		} else if (selectedMember instanceof FieldInstance) {
-			onFieldSelect((FieldInstance) selectedMember);
+		if (selectedMember instanceof MethodInstance method) {
+			onMethodSelect(method);
+		} else if (selectedMember instanceof FieldInstance field) {
+			onFieldSelect(field);
 		}
 	}
 
@@ -95,7 +97,7 @@ public class SourcecodeTab extends WebViewTab {
 		NameType nameType = gui.getNameType().withUnmatchedTmp(unmatchedTmp);
 		Decompiler decompiler = gui.getDecompiler().get();
 
-		//Gui.runAsyncTask(() -> gui.getEnv().decompile(selectedClass, true))
+		// Gui.runAsyncTask(() -> gui.getEnv().decompile(selectedClass, true))
 		pendingUpdateTask = MatcherGui.runAsyncTask(() -> SrcDecorator.decorate(gui.getEnv().decompile(decompiler, selectedClass, nameType), selectedClass, nameType))
 				.whenComplete((res, exc) -> applyDecompilerResult(res, exc, cDecompId));
 	}
@@ -103,23 +105,23 @@ public class SourcecodeTab extends WebViewTab {
 	private void applyDecompilerResult(String res, Throwable exc, int cDecompId) {
 		if (cDecompId != decompId) {
 			if (exc != null) {
-				exc.printStackTrace();
+				if (exc instanceof SrcParseException) {
+					LOGGER.debug("parse error (old task, ignored)", exc);
+				} else {
+					LOGGER.debug("decompile error (old task, ignored)", exc);
+				}
 			}
 
 			return;
 		}
 
 		if (exc != null) {
-			exc.printStackTrace();
-
-			StringWriter sw = new StringWriter();
-			exc.printStackTrace(new PrintWriter(sw));
-
-			if (exc instanceof SrcParseException) {
-				SrcParseException parseExc = (SrcParseException) exc;
-				displayText("parse error: "+parseExc.problems+"\ndecompiled source:\n"+parseExc.source);
+			if (exc instanceof SrcParseException parseExc) {
+				LOGGER.debug("parse error", exc);
+				displayText("parse error: " + parseExc.problems + "\ndecompiled source:\n" + parseExc.source);
 			} else {
-				displayText("decompile error: "+sw.toString());
+				LOGGER.error("decompile error", exc);
+				displayText("decompile error: " + Util.getStackTrace(exc));
 			}
 		} else {
 			double prevScroll = updateNeeded == UPDATE_REFRESH ? getScrollTop() : 0;
@@ -152,6 +154,7 @@ public class SourcecodeTab extends WebViewTab {
 		}
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(SourcecodeTab.class);
 	private static final int UPDATE_NONE = 0;
 	private static final int UPDATE_RESET = 1;
 	private static final int UPDATE_REFRESH = 2; // tries to keep scroll position

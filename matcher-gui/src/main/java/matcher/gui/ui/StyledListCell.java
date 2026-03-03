@@ -19,5 +19,5 @@ abstract class StyledListCell<T> extends ListCell<T> {
 	protected abstract String getText(T item);
 
 	protected void setCustomStyle(StyledListCell<?> cell, T item) {
-	};
+	}
 }

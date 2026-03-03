@@ -43,5 +43,6 @@ dependencies {
 	implementation "org.gradlex:extra-java-module-info:${props.getProperty('extra_java_module_info_version')}"
 	implementation "com.gradleup.shadow:shadow-gradle-plugin:${props.getProperty('shadow_version')}"
 	implementation "me.modmuss50:mod-publish-plugin:${props.getProperty('mod_publish_plugin_version')}"
+	implementation "org.openrewrite:plugin:${props.getProperty('openrewrite_plugin_version')}"
 }
 

@@ -9,12 +9,12 @@ import matcher.model.type.Matchable;
 public class MatchingCache {
 	@SuppressWarnings("unchecked")
 	public <T, U extends Matchable<U>> T get(CacheToken<T> token, U a, U b) {
-		return (T) cache.get(new CacheKey<U>(token, a, b));
+		return (T) cache.get(new CacheKey<>(token, a, b));
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T, U extends Matchable<U>> T compute(CacheToken<T> token, U a, U b, BiFunction<U, U, T> f) {
-		return (T) cache.computeIfAbsent(new CacheKey<U>(token, a, b), k -> f.apply((U) k.a, (U) k.b));
+		return (T) cache.computeIfAbsent(new CacheKey<>(token, a, b), k -> f.apply((U) k.a, (U) k.b));
 	}
 
 	public void clear() {

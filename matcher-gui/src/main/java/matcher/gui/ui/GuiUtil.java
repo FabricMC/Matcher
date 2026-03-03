@@ -57,4 +57,7 @@ public final class GuiUtil {
 			}
 		}
 	}
+
+	private GuiUtil() {
+	}
 }

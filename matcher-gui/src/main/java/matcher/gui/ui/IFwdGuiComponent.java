@@ -72,6 +72,7 @@ public interface IFwdGuiComponent extends IGuiComponent {
 		}
 	}
 
+	@Override
 	default void onMatchListRefresh() {
 		for (IGuiComponent c : getComponents()) {
 			c.onMatchListRefresh();

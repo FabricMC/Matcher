@@ -77,7 +77,7 @@ public class ViewMenu extends Menu implements IGuiComponent {
 
 		for (int i = 0; i < NameType.AUX_COUNT; i++) {
 			final int index = i;
-			useAuxNamesItems[i] = GuiUtil.addCheckMenuItem(this, String.format("Use aux%s names", i > 0 ? Integer.toString(i + 1) : ""),
+			useAuxNamesItems[i] = GuiUtil.addCheckMenuItem(this, "Use aux%s names".formatted(i > 0 ? Integer.toString(i + 1) : ""),
 					gui.getNameType() != gui.getNameType().withAux(i, false),
 					value -> gui.setNameType(gui.getNameType().withAux(index, value)));
 		}

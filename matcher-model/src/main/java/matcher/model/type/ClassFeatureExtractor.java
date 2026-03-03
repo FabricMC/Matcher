@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 			FileSystem fs = Util.iterateJar(archive, false, file -> {
 				String name = file.toAbsolutePath().toString();
-				if (!name.startsWith("/") || !name.endsWith(".class") || name.startsWith("//")) throw new RuntimeException("invalid path: "+archive+" ("+name+")");
+				if (!name.startsWith("/") || !name.endsWith(".class") || name.startsWith("//")) throw new RuntimeException("invalid path: " + archive + " (" + name + ")");
 				name = name.substring(1, name.length() - ".class".length());
 
 				if (!checkExisting || getLocalClsByName(name) == null && env.getSharedClassLocation(name) == null && env.getLocalClsByName(name) == null) {
@@ -242,13 +241,11 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 	private void processMethodInsns(MethodInstance method) {
 		if (!method.isReal()) { // artificial method to capture calls to types with incomplete/unknown hierarchy/super type method info
-			logger.debug("Skipping empty method {}", method);
+			LOGGER.debug("Skipping empty method {}", method);
 			return;
 		}
 
-		for (Iterator<AbstractInsnNode> it = method.getAsmNode().instructions.iterator(); it.hasNext(); ) {
-			AbstractInsnNode ain = it.next();
-
+		for (AbstractInsnNode ain : method.getAsmNode().instructions) {
 			switch (ain.getType()) {
 			case AbstractInsnNode.METHOD_INSN: {
 				MethodInsnNode in = (MethodInsnNode) ain;
@@ -305,7 +302,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 							Util.isCallToInterface(impl), impl.getTag() == Opcodes.H_INVOKESTATIC);
 					break;
 				default:
-					logger.warn("Unexpected impl tag: {}", impl.getTag());
+					LOGGER.warn("Unexpected impl tag: {}", impl.getTag());
 				}
 
 				break;
@@ -330,7 +327,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 		MethodInstance ret = cls.resolveMethod(name, desc, toInterface);
 
 		if (ret == null && create) {
-			logger.trace("Creating synthetic method {}/{}{}", owner, name, desc);
+			LOGGER.trace("Creating synthetic method {}/{}{}", owner, name, desc);
 
 			ret = new MethodInstance(cls, name, desc, isStatic);
 			cls.addMethod(ret);
@@ -377,7 +374,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 				if (isHierarchyBarrier(method)) {
 					if (method.hierarchyData == null) {
-						method.hierarchyData = new MemberHierarchyData<>(Collections.singleton(method), method.nameObfuscatedLocal);
+						method.hierarchyData = new MemberHierarchyData<>(Set.of(method), method.nameObfuscatedLocal);
 					}
 				} else if ((prev = methods.get(method.id)) != null) {
 					if (method.hierarchyData == null) {
@@ -438,11 +435,11 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 			}
 
 			determineMethodType(method);
-			//Analysis.analyzeMethod(method, common);
+			// Analysis.analyzeMethod(method, common);
 		}
 
 		for (FieldInstance field : cls.getFields()) {
-			field.hierarchyData = new MemberHierarchyData<>(Collections.singleton(field), field.nameObfuscatedLocal);
+			field.hierarchyData = new MemberHierarchyData<>(Set.of(field), field.nameObfuscatedLocal);
 
 			if (field.writeRefs.size() == 1) {
 				Analysis.checkInitializer(field, this);
@@ -499,9 +496,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 		for (MethodInstance m : method.refsIn) {
 			boolean found = false;
 
-			for (Iterator<AbstractInsnNode> it = m.getAsmNode().instructions.iterator(); it.hasNext(); ) {
-				AbstractInsnNode ain = it.next();
-
+			for (AbstractInsnNode ain : m.getAsmNode().instructions) {
 				switch (ain.getType()) {
 				case AbstractInsnNode.METHOD_INSN:
 					if (resolveMethod((MethodInsnNode) ain) == method) return false;
@@ -548,7 +543,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 		if (cls.isNameObfuscated()) {
 			assert clsIndex >= 0;
-			cls.setTmpName("c"+envName+clsIndex);
+			cls.setTmpName("c" + envName + clsIndex);
 		}
 
 		int memberIndex = 0;
@@ -559,7 +554,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 			assert !method.getName().equals("<init>") && !method.getName().equals("<clinit>");
 
 			if (method.getAllHierarchyMembers().size() == 1) {
-				method.setTmpName("m"+envName+memberIndex);
+				method.setTmpName("m" + envName + memberIndex);
 				memberIndex++;
 			} else if (!method.hasLocalTmpName()) {
 				String name = "vm"+envName+vmIdx.getAndIncrement();
@@ -574,7 +569,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 			assert field.getAllHierarchyMembers().size() == 1;
 
-			field.setTmpName("f"+envName+memberIndex);
+			field.setTmpName("f" + envName + memberIndex);
 			memberIndex++;
 		}
 
@@ -644,7 +639,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 	@Override
 	public ClassInstance getCreateClassInstance(String id, boolean createUnknown) {
-		if (id.length() == 0) throw new IllegalArgumentException("empty class desc");
+		if (id.isEmpty()) throw new IllegalArgumentException("empty class desc");
 		assert id.length() == 1 || id.charAt(id.length() - 1) == ';' || id.charAt(0) == '[' && id.lastIndexOf('[') == id.length() - 2 : id;
 
 		ClassInstance ret;
@@ -680,7 +675,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 			if (sharedRet != null) return sharedRet;
 
 			// create shared missing class
-			//ret = env.getMissingCls(id, createUnknown);
+			// ret = env.getMissingCls(id, createUnknown);
 
 			// try shared jvm-cp class
 			if ((ret = env.getMissingCls(id, false)) != null || !createUnknown) return ret;
@@ -703,7 +698,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 
 		ClassNode cn = ClassEnvironment.readClass(file, false);
 		ClassInstance cls = new ClassInstance(ClassInstance.getId(cn.name), ClassEnvironment.getContainingUri(file.toUri(), cn.name), this, cn);
-		if (!cls.getId().equals(id)) throw new RuntimeException("mismatched cls id "+id+" for "+file+", expected "+name);
+		if (!cls.getId().equals(id)) throw new RuntimeException("mismatched cls id " + id + " for " + file + ", expected " + name);
 
 		ClassInstance prev = classes.putIfAbsent(cls.getId(), cls);
 		assert prev == null;
@@ -724,7 +719,7 @@ public class ClassFeatureExtractor implements LocalClassEnv {
 		return this == env.getEnvA() ? env.getEnvB() : env.getEnvA();
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(ClassFeatureExtractor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassFeatureExtractor.class);
 	final ClassEnvironment env;
 	private final List<InputFile> inputFiles = new ArrayList<>();
 	private final List<InputFile> cpFiles = new ArrayList<>();

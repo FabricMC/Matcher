@@ -33,16 +33,16 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Util {
+public final class Util {
 	public static <T> Set<T> newIdentityHashSet() {
-		return Collections.newSetFromMap(new IdentityHashMap<>()); //new IdentityHashSet<>();
+		return Collections.newSetFromMap(new IdentityHashMap<>()); // new IdentityHashSet<>();
 	}
 
 	public static <T> Set<T> newIdentityHashSet(Collection<? extends T> c) {
 		Set<T> ret = Collections.newSetFromMap(new IdentityHashMap<>(c.size()));
 		ret.addAll(c);
 
-		return ret; //new IdentityHashSet<>(c);
+		return ret; // new IdentityHashSet<>(c);
 	}
 
 	public static <T> Set<T> copySet(Set<T> set) {
@@ -67,7 +67,7 @@ public class Util {
 		FileSystem fs = null;
 
 		try {
-			URI uri = new URI("jar:"+archive.toUri().toString());
+			URI uri = new URI("jar:" + archive.toUri());
 
 			synchronized (Util.class) {
 				try {
@@ -78,20 +78,20 @@ public class Util {
 					existing = false;
 				}
 
-				AtomicInteger count = usedFsMap.get(fs);
+				AtomicInteger count = USED_FS_MAP.get(fs);
 
 				if (count != null) {
 					count.incrementAndGet();
 				} else if (!existing && autoClose) {
-					usedFsMap.put(fs, new AtomicInteger());
+					USED_FS_MAP.put(fs, new AtomicInteger());
 				} else {
 					autoClose = false;
 				}
 			}
 
-			Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
+			Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<>() {
 				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
 					if (file.toString().endsWith(".class")) {
 						handler.accept(file);
 					}
@@ -117,10 +117,10 @@ public class Util {
 	}
 
 	private static synchronized void autoCloseFs(FileSystem fs) {
-		AtomicInteger count = usedFsMap.get(fs);
+		AtomicInteger count = USED_FS_MAP.get(fs);
 
 		if (count.decrementAndGet() == 0) {
-			usedFsMap.remove(fs);
+			USED_FS_MAP.remove(fs);
 			closeSilently(fs);
 		}
 	}
@@ -132,7 +132,7 @@ public class Util {
 
 		AtomicBoolean ret = new AtomicBoolean(true);
 
-		Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+		Files.walkFileTree(path, new SimpleFileVisitor<>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				if (disallowed.test(file)) {
@@ -189,14 +189,14 @@ public class Util {
 		int assoc = type.assoc;
 		StringBuilder sb = new StringBuilder();
 
-		for (int i = 0; i < accessFlags.length; i++) {
-			if ((accessAssoc[i] & assoc) == 0) continue;
-			if ((access & accessFlags[i]) == 0) continue;
+		for (int i = 0; i < ACCESS_FLAGS.length; i++) {
+			if ((ACCESS_ASSOC[i] & assoc) == 0) continue;
+			if ((access & ACCESS_FLAGS[i]) == 0) continue;
 
 			if (sb.length() != 0) sb.append(' ');
-			sb.append(accessNames[i]);
+			sb.append(ACCESS_NAMES[i]);
 
-			access &= ~accessFlags[i];
+			access &= ~ACCESS_FLAGS[i];
 		}
 
 		if (access != 0) {
@@ -218,15 +218,15 @@ public class Util {
 		final int assoc;
 	}
 
-	private static final int[] accessFlags = new int[] { Opcodes.ACC_PUBLIC, Opcodes.ACC_PRIVATE, Opcodes.ACC_PROTECTED, Opcodes.ACC_STATIC,
+	private static final int[] ACCESS_FLAGS = new int[] { Opcodes.ACC_PUBLIC, Opcodes.ACC_PRIVATE, Opcodes.ACC_PROTECTED, Opcodes.ACC_STATIC,
 			Opcodes.ACC_FINAL, Opcodes.ACC_SUPER, Opcodes.ACC_SYNCHRONIZED, Opcodes.ACC_VOLATILE, Opcodes.ACC_BRIDGE, Opcodes.ACC_VARARGS,
 			Opcodes.ACC_TRANSIENT, Opcodes.ACC_NATIVE, Opcodes.ACC_INTERFACE, Opcodes.ACC_ABSTRACT, Opcodes.ACC_STRICT, Opcodes.ACC_SYNTHETIC,
 			Opcodes.ACC_ANNOTATION, Opcodes.ACC_ENUM, Opcodes.ACC_MANDATED };
-	private static final String[] accessNames = new String[] { "public", "private", "protected", "static",
+	private static final String[] ACCESS_NAMES = new String[] { "public", "private", "protected", "static",
 			"final", "super", "synchronized", "volatile", "bridge", "varargs",
 			"transient", "native", "interface", "abstract", "strict", "synthetic",
 			"annotation", "enum", "mandated" };
-	private static final byte[] accessAssoc = new byte[] { 7, 7, 7, 6,
+	private static final byte[] ACCESS_ASSOC = new byte[] { 7, 7, 7, 6,
 			15, 1, 2, 4, 2, 2,
 			4, 2, 1, 3, 2, 15,
 			1, 21, 8 };
@@ -237,7 +237,7 @@ public class Util {
 		} else if (isIrrelevantBsm(bsm)) {
 			return null;
 		} else {
-			logger.warn("Unknown invokedynamic bsm: {}/{}{} (tag={} iif={})",
+			LOGGER.warn("Unknown invokedynamic bsm: {}/{}{} (tag={} iif={})",
 					bsm.getOwner(), bsm.getName(), bsm.getDesc(), bsm.getTag(), bsm.isInterface());
 
 			return null;
@@ -298,7 +298,7 @@ public class Util {
 		int endA = -1;
 		int endB = -1;
 
-		for (;;) {
+		while (true) {
 			int startA = posA;
 			boolean isNumA = false;
 
@@ -397,7 +397,11 @@ public class Util {
 		}
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(Util.class);
-	private static final Map<FileSystem, AtomicInteger> usedFsMap = new IdentityHashMap<>();
-	public static final Object asmNodeSync = new Object();
+	private Util() {
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
+	private static final Map<FileSystem, AtomicInteger> USED_FS_MAP = new IdentityHashMap<>();
+	public static final Object ASM_NODE_SYNC = new Object();
+	public static final int ASM_API_VERSION = Opcodes.ASM9;
 }

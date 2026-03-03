@@ -9,8 +9,9 @@ import com.strobel.assembler.metadata.CompositeTypeLoader;
 import com.strobel.assembler.metadata.ITypeLoader;
 import com.strobel.decompiler.DecompilerSettings;
 import com.strobel.decompiler.PlainTextOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import matcher.core.Matcher;
 import matcher.model.NameType;
 import matcher.model.type.ClassFeatureExtractor;
 import matcher.model.type.ClassInstance;
@@ -44,7 +45,7 @@ public class Procyon implements Decompiler {
 
 			if (cls == null) {
 				if (checkWarn(internalName)) {
-					Matcher.LOGGER.debug("Missing cls: {}", internalName);
+					LOGGER.debug("Missing cls: {}", internalName);
 				}
 
 				return false;
@@ -52,7 +53,7 @@ public class Procyon implements Decompiler {
 
 			if (cls.getAsmNodes() == null) {
 				if (checkWarn(internalName)) {
-					Matcher.LOGGER.debug("Unknown cls: {}", internalName);
+					LOGGER.debug("Unknown cls: {}", internalName);
 				}
 
 				return false;
@@ -75,7 +76,8 @@ public class Procyon implements Decompiler {
 
 		private final ClassFeatureExtractor env;
 		private final NameType nameType;
-
 		private final Set<String> warnedClasses = new HashSet<>();
 	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Procyon.class);
 }

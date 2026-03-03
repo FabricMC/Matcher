@@ -52,19 +52,19 @@ import org.slf4j.LoggerFactory;
 import matcher.model.NameType;
 import matcher.model.Util;
 
-class Analysis {
+final class Analysis {
 	static void analyzeMethod(MethodInstance method, CommonClasses common) {
 		MethodNode asmNode = method.getAsmNode();
 		if (asmNode == null || (asmNode.access & Opcodes.ACC_ABSTRACT) != 0 || asmNode.instructions.size() == 0) return;
 
-		logger.debug(method.getDisplayName(NameType.MAPPED_PLAIN, true));
+		LOGGER.atDebug().log(() -> method.getDisplayName(NameType.MAPPED_PLAIN, true));
 		dump(asmNode);
 
 		StateRecorder rec = new StateRecorder(method, common);
 		InsnList il = asmNode.instructions;
 
 		Map<AbstractInsnNode, int[]> exitPoints = new IdentityHashMap<>();
-		exitPoints.put(null, new int[] { 0 });
+		exitPoints.put(null, new int[]{0});
 
 		Queue<QueueElement> queue = new ArrayDeque<>();
 		queue.add(new QueueElement(0, rec.getState()));
@@ -416,7 +416,7 @@ class Analysis {
 
 					if (handler != null) {
 						int dstIdx = il.indexOf(handler);
-						if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[] { dstIdx });
+						if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[]{dstIdx});
 						rec.jump(dstIdx);
 						idx = dstIdx;
 					} else {
@@ -453,7 +453,7 @@ class Analysis {
 					case Opcodes.T_INT: arrayType = "[I"; break;
 					case Opcodes.T_LONG: arrayType = "[J"; break;
 					default:
-						throw new UnsupportedOperationException("unknown NEWARRAY operand: "+((IntInsnNode) ain).operand);
+						throw new UnsupportedOperationException("unknown NEWARRAY operand: " + ((IntInsnNode) ain).operand);
 					}
 
 					rec.push(method.getEnv().getCreateClassInstance(arrayType), rec.getNextVarId(VarSource.New));
@@ -491,10 +491,10 @@ class Analysis {
 					String desc = ((TypeInsnNode) ain).desc;
 
 					if (desc.startsWith("[")) {
-						desc = "["+desc;
+						desc = "[" + desc;
 					} else {
 						assert !desc.startsWith("L");
-						desc = "[L"+desc+";";
+						desc = "[L" + desc + ";";
 					}
 
 					rec.pop();
@@ -518,7 +518,7 @@ class Analysis {
 				case Opcodes.PUTFIELD: {
 					FieldInsnNode in = (FieldInsnNode) ain;
 					FieldInstance field = method.getEnv().getClsByName(in.owner).resolveField(in.name, in.desc);
-					boolean isWrite = (op == Opcodes.PUTFIELD || op == Opcodes.PUTSTATIC);
+					boolean isWrite = op == Opcodes.PUTFIELD || op == Opcodes.PUTSTATIC;
 
 					if (isWrite) { // put*
 						if (field.getType().getSlotSize() == 1) {
@@ -603,17 +603,17 @@ class Analysis {
 
 					if (dstIdx != idx + 1) {
 						if (op == Opcodes.GOTO) {
-							if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[] { dstIdx });
+							if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[]{dstIdx});
 							if (!rec.jump(dstIdx)) break insnLoop;
 							idx = dstIdx;
 						} else {
-							if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[] { dstIdx, idx + 1 });
+							if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[]{dstIdx, idx + 1});
 
 							QueueElement e = new QueueElement(dstIdx, rec.getState());
 							if (queued.add(e)) queue.add(e);
 						}
 					} else { // no-op jump
-						if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[] { dstIdx });
+						if (!exitPoints.containsKey(ain)) exitPoints.put(ain, new int[]{dstIdx});
 					}
 
 					break;
@@ -649,10 +649,10 @@ class Analysis {
 							rec.push(method.getEnv().getCreateClassInstance("Ljava/lang/invoke/MethodType;"), rec.getNextVarId(VarSource.Constant));
 							break;
 						default:
-							throw new UnsupportedOperationException("unsupported type sort: "+type.getSort());
+							throw new UnsupportedOperationException("unsupported type sort: " + type.getSort());
 						}
 					} else {
-						throw new UnsupportedOperationException("unknown ldc constant type: "+val.getClass());
+						throw new UnsupportedOperationException("unknown ldc constant type: " + val.getClass());
 					}
 
 					break;
@@ -731,7 +731,7 @@ class Analysis {
 					break;
 				}
 				default:
-					throw new UnsupportedOperationException("unknown opcode: "+ain.getOpcode()+" (type "+ain.getType()+")");
+					throw new UnsupportedOperationException("unknown opcode: " + ain.getOpcode() + " (type " + ain.getType() + ")");
 				}
 
 				if (!rec.next()) break;
@@ -895,7 +895,7 @@ class Analysis {
 				int dst = il.indexOf(n.handler);
 
 				if (exits == null) {
-					exitPoints.put(ain, new int[] { dst, idx + 1 });
+					exitPoints.put(ain, new int[]{dst, idx + 1});
 				} else {
 					boolean found = false;
 
@@ -929,7 +929,7 @@ class Analysis {
 					&& type != AbstractInsnNode.JUMP_INSN
 					&& type != AbstractInsnNode.TABLESWITCH_INSN
 					&& type != AbstractInsnNode.LOOKUPSWITCH_INSN) {
-				exitPoints.put(prev, new int[] { idx });
+				exitPoints.put(prev, new int[]{idx});
 			}
 		}
 	}
@@ -978,8 +978,8 @@ class Analysis {
 				if (!localsUsed.isEmpty()) { // not all used (xor -> 1 = not used)
 					changed = true;
 					int newLocalsSize = localsUsed.previousClearBit(state.locals.length - 1) + 1;
-					ClassInstance[] newLocals = newLocalsSize == 0 ? ExecState.empty : Arrays.copyOf(state.locals, newLocalsSize);
-					int[] newLocalVarIds = newLocalsSize == 0 ? ExecState.emptyIds : Arrays.copyOf(state.localVarIds, newLocalsSize);
+					ClassInstance[] newLocals = newLocalsSize == 0 ? ExecState.EMPTY : Arrays.copyOf(state.locals, newLocalsSize);
+					int[] newLocalVarIds = newLocalsSize == 0 ? ExecState.EMPTY_IDS : Arrays.copyOf(state.localVarIds, newLocalsSize);
 					int idx = -1;
 
 					while ((idx = localsUsed.nextSetBit(idx + 1)) != -1 && idx < newLocalsSize) {
@@ -1018,7 +1018,7 @@ class Analysis {
 						for (int i = 0; i < state.locals.length; i++) {
 							if ((state.locals[i] != null) != localsSupplied.get(i)) {
 								if (state.locals[i] == null) {
-									throw new IllegalStateException("missing local "+i);
+									throw new IllegalStateException("missing local " + i);
 								}
 
 								foundMismatch = true;
@@ -1030,8 +1030,8 @@ class Analysis {
 							changed = true;
 
 							int newLocalsSize = localsSupplied.previousSetBit(state.locals.length - 1) + 1;
-							ClassInstance[] newLocals = newLocalsSize == 0 ? ExecState.empty : Arrays.copyOf(state.locals, newLocalsSize);
-							int[] newLocalVarIds = newLocalsSize == 0 ? ExecState.emptyIds : Arrays.copyOf(state.localVarIds, newLocalsSize);
+							ClassInstance[] newLocals = newLocalsSize == 0 ? ExecState.EMPTY : Arrays.copyOf(state.locals, newLocalsSize);
+							int[] newLocalVarIds = newLocalsSize == 0 ? ExecState.EMPTY_IDS : Arrays.copyOf(state.localVarIds, newLocalsSize);
 
 							for (int i = 0; i < newLocals.length - 1; i++) {
 								if (!localsSupplied.get(i)) {
@@ -1145,13 +1145,22 @@ class Analysis {
 
 		lvToVar = null;
 
-		logger.debug("Local vars raw:");
+		LOGGER.debug("Local vars raw:");
 
 		for (int i = 0; i < varCount; i++) {
 			ExecState state = rec.getState(startIndices[i]);
+			int lv = varToLv[i];
+			int startIdx = startIndices[i];
+			int endIdx = endIndices[i];
 
-			logger.debug("  {}: LV {} @ {} - {}: {}\t\t({})",
-					i, varToLv[i], startIndices[i], endIndices[i], state.locals[varToLv[i]].toString(), rec.varSources[state.localVarIds[varToLv[i]] - 1].name());
+			LOGGER.atDebug()
+					.addArgument(i)
+					.addArgument(() -> lv)
+					.addArgument(() -> startIdx)
+					.addArgument(() -> endIdx)
+					.addArgument(state.locals[lv]::toString)
+					.addArgument(rec.varSources[state.localVarIds[lv] - 1]::name)
+					.log("  {}: LV {} @ {} - {}: {}\t\t({})");
 		}
 
 		// merge variables if they are adjacent and reachable without interruption, TODO: this currently only merges blocks that are reachable by the preceding block, the other way is also possible
@@ -1256,13 +1265,22 @@ class Analysis {
 			}
 		}
 
-		logger.debug("Local vars:");
+		LOGGER.debug("Local vars:");
 
 		for (int i = 0; i < varCount; i++) {
 			ExecState state = rec.getState(startIndices[i]);
+			int lv = varToLv[i];
+			int startIdx = startIndices[i];
+			int endIdx = endIndices[i];
 
-			logger.debug("  {}: LV {} @ {} - {}: {}\t\t({})",
-					i, varToLv[i], startIndices[i], endIndices[i], state.locals[varToLv[i]].toString(), rec.varSources[state.localVarIds[varToLv[i]] - 1].name());
+			LOGGER.atDebug()
+					.addArgument(i)
+					.addArgument(() -> lv)
+					.addArgument(() -> startIdx)
+					.addArgument(() -> endIdx)
+					.addArgument(state.locals[lv]::toString)
+					.addArgument(rec.varSources[state.localVarIds[lv] - 1]::name)
+					.log("  {}: LV {} @ {} - {}: {}\t\t({})");
 		}
 
 		if (orig != null) {
@@ -1283,14 +1301,14 @@ class Analysis {
 			}
 
 			if (!mismatch) {
-				logger.debug("Existing vars matched!");
+				LOGGER.debug("Existing vars matched!");
 			} else {
-				logger.debug("Existing vars mismatch:");
+				LOGGER.debug("Existing vars mismatch:");
 
 				for (int i = 0; i < orig.size(); i++) {
 					LocalVariableNode lvn = orig.get(i);
 
-					logger.debug("  {}: LV {} @ {} - {}: {}",
+					LOGGER.debug("  {}: LV {} @ {} - {}: {}",
 							i, lvn.index, il.indexOf(lvn.start), il.indexOf(lvn.end) - 1, lvn.desc);
 				}
 			}
@@ -1604,7 +1622,7 @@ class Analysis {
 				ClassInstance commonCls = getCommonSuperClass(a, b);
 
 				if (commonCls == null) {
-					throw new IllegalStateException("incompatible stack types: "+a+" "+b);
+					throw new IllegalStateException("incompatible stack types: " + a + " " + b);
 				}
 
 				if (commonCls != a) {
@@ -1658,7 +1676,7 @@ class Analysis {
 
 			if (srcId >= varIdMap.length) varIdMap = Arrays.copyOf(varIdMap, Math.max(varIdMap.length * 2, srcId + 1));
 
-			for (;;) {
+			while (true) {
 				int prev = varIdMap[srcId];
 
 				if (prev == dstId) {
@@ -1856,13 +1874,13 @@ class Analysis {
 					sb.append(((LineNumberNode) ain).line);
 					break;
 				default:
-					throw new UnsupportedOperationException("unknown insn: "+ain);
+					throw new UnsupportedOperationException("unknown insn: " + ain);
 				}
 
 				sb.append('\n');
 			}
 
-			logger.debug(sb.toString());
+			LOGGER.atDebug().log(sb::toString);
 		}
 
 		private void dumpVars(ClassInstance[] types, int[] ids, StringBuilder sb) {
@@ -1889,7 +1907,7 @@ class Analysis {
 					sb.append(':');
 
 					if (type != common.NULL) {
-						sb.append(type.toString());
+						sb.append(type);
 					} else {
 						sb.append("null");
 					}
@@ -1897,7 +1915,7 @@ class Analysis {
 			}
 
 			sb.append(']');
-			logger.debug(sb.toString());
+			LOGGER.atDebug().log(sb::toString);
 		}
 
 		final ExecState[] states; // state at the start of every instruction index
@@ -1925,15 +1943,15 @@ class Analysis {
 	}
 
 	private enum VarSource {
-		Constant, Arg, Merge, ExtException, IntException, ArrayElement, Cast, Computed, New, Field, MethodRet;
+		Constant, Arg, Merge, ExtException, IntException, ArrayElement, Cast, Computed, New, Field, MethodRet
 	}
 
 	private static class ExecState {
 		ExecState(ClassInstance[] locals, int[] localVarIds, int localsSize, ClassInstance[] stack, int[] stackVarIds, int stackSize) {
-			this((localsSize != 0 ? Arrays.copyOf(locals, localsSize) : empty),
-					(localsSize != 0 ? Arrays.copyOf(localVarIds, localsSize) : emptyIds),
-					(stackSize != 0 ? Arrays.copyOf(stack, stackSize) : empty),
-					(stackSize != 0 ? Arrays.copyOf(stackVarIds, stackSize) : emptyIds));
+			this(localsSize != 0 ? Arrays.copyOf(locals, localsSize) : EMPTY,
+					localsSize != 0 ? Arrays.copyOf(localVarIds, localsSize) : EMPTY_IDS,
+					stackSize != 0 ? Arrays.copyOf(stack, stackSize) : EMPTY,
+					stackSize != 0 ? Arrays.copyOf(stackVarIds, stackSize) : EMPTY_IDS);
 		}
 
 		ExecState(ClassInstance[] locals, int[] localVarIds, ClassInstance[] stack, int[] stackVarIds) {
@@ -1963,8 +1981,8 @@ class Analysis {
 			return Arrays.hashCode(locals) ^ Arrays.hashCode(stack);
 		}
 
-		private static final ClassInstance[] empty = new ClassInstance[0];
-		private static final int[] emptyIds = new int[0];
+		private static final ClassInstance[] EMPTY = new ClassInstance[0];
+		private static final int[] EMPTY_IDS = new int[0];
 
 		final ClassInstance[] locals;
 		final int[] localVarIds;
@@ -1980,12 +1998,10 @@ class Analysis {
 		InsnList il = asmNode.instructions;
 		AbstractInsnNode fieldWrite = null;
 
-		//dump(method.asmNode);
-		//Matcher.LOGGER.debug("\n------------------------\n");
+		// dump(method.asmNode);
+		// LOGGER.debug("\n------------------------\n");
 
-		for (Iterator<AbstractInsnNode> it = il.iterator(); it.hasNext(); ) {
-			AbstractInsnNode aInsn = it.next();
-
+		for (AbstractInsnNode aInsn : il) {
 			if (aInsn.getOpcode() == Opcodes.PUTFIELD || aInsn.getOpcode() == Opcodes.PUTSTATIC) {
 				FieldInsnNode in = (FieldInsnNode) aInsn;
 				ClassInstance cls;
@@ -2001,7 +2017,7 @@ class Analysis {
 
 		if (fieldWrite == null) {
 			dump(asmNode);
-			throw new IllegalStateException("can't find field write insn for "+field+" in "+method);
+			throw new IllegalStateException("can't find field write insn for " + field + " in " + method);
 		}
 
 		Interpreter<SourceValue> interpreter = new SourceInterpreter();
@@ -2076,19 +2092,19 @@ class Analysis {
 			}
 		}
 
-		//Textifier textifier = new Textifier();
-		//MethodVisitor visitor = new TraceMethodVisitor(textifier);
-		List<AbstractInsnNode> initIl = new ArrayList<AbstractInsnNode>(tracedPositions.cardinality());
+		// Textifier textifier = new Textifier();
+		// MethodVisitor visitor = new TraceMethodVisitor(textifier);
+		List<AbstractInsnNode> initIl = new ArrayList<>(tracedPositions.cardinality());
 		int pos = 0;
 
 		while ((pos = tracedPositions.nextSetBit(pos)) != -1) {
 			in = il.get(pos);
 			initIl.add(in);
 
-			/*Matcher.LOGGER.debug(pos+": ");
+			/*LOGGER.debug(pos+": ");
 
 			il.get(pos).accept(visitor);
-			Matcher.LOGGER.debug(textifier.getText().get(0));
+			LOGGER.debug(textifier.getText().get(0));
 			textifier.getText().clear();*/
 
 			pos++;
@@ -2099,7 +2115,7 @@ class Analysis {
 		/*		int pos = fieldWritePos;
 
 		for (int i = 0; i < 100; i++) {
-			Matcher.LOGGER.debug(i+" ("+pos+"):");
+			LOGGER.debug(i+" ("+pos+"):");
 
 			Frame<SourceValue> frame = frames[pos];
 			Frame<SourceValue> nextFrame = frames[pos + 1];
@@ -2109,24 +2125,24 @@ class Analysis {
 			SourceValue value = frame.getStack(frame.getStackSize() - 1);
 
 			if (value.insns.isEmpty()) {
-				Matcher.LOGGER.debug("empty");
+				LOGGER.debug("empty");
 				break;
 			}
 
 			for (AbstractInsnNode ain : value.insns) {
 				ain.accept(visitor);
-				Matcher.LOGGER.debug(textifier.getText().get(0));
+				LOGGER.debug(textifier.getText().get(0));
 				textifier.getText().clear();
 			}
 
 			pos = method.asmNode.instructions.indexOf(value.insns.iterator().next());
 		}*/
 
-		/*Matcher.LOGGER.debug(frame);
-		Matcher.LOGGER.debug("\n------------------------\n");
+		/*LOGGER.debug(frame);
+		LOGGER.debug("\n------------------------\n");
 
 		dump(frame.getStack(frame.getStackSize() - 1).insns);*/
-		//Matcher.LOGGER.debug();
+		// LOGGER.debug();
 	}
 
 	private static int getStackDemand(AbstractInsnNode ain, Frame<?> frame) {
@@ -2274,7 +2290,7 @@ class Analysis {
 			case Opcodes.MONITOREXIT:
 				return 1;
 			default:
-				throw new IllegalArgumentException("unknown insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.INT_INSN:
 			switch (ain.getOpcode()) {
@@ -2284,7 +2300,7 @@ class Analysis {
 			case Opcodes.NEWARRAY:
 				return 1; // +1
 			default:
-				throw new IllegalArgumentException("unknown int insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown int insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.VAR_INSN:
 			switch (ain.getOpcode()) {
@@ -2303,7 +2319,7 @@ class Analysis {
 			case Opcodes.RET:
 				return 0;
 			default:
-				throw new IllegalArgumentException("unknown var insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown var insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.TYPE_INSN:
 			switch (ain.getOpcode()) {
@@ -2315,7 +2331,7 @@ class Analysis {
 			case Opcodes.INSTANCEOF:
 				return 1; // +1
 			default:
-				throw new IllegalArgumentException("unknown type insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown type insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.FIELD_INSN:
 			switch (ain.getOpcode()) {
@@ -2328,7 +2344,7 @@ class Analysis {
 			case Opcodes.PUTFIELD:
 				return 2;
 			default:
-				throw new IllegalArgumentException("unknown field insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown field insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.METHOD_INSN:
 			return Type.getArgumentTypes(((MethodInsnNode) ain).desc).length + (ain.getOpcode() != Opcodes.INVOKESTATIC ? 1 : 0); // +1 if ret type != void
@@ -2360,7 +2376,7 @@ class Analysis {
 			case Opcodes.IFNONNULL:
 				return 1;
 			default:
-				throw new IllegalArgumentException("unknown jump insn opcode "+ain.getOpcode());
+				throw new IllegalArgumentException("unknown jump insn opcode " + ain.getOpcode());
 			}
 		case AbstractInsnNode.LABEL:
 			return 0;
@@ -2379,7 +2395,7 @@ class Analysis {
 		case AbstractInsnNode.LINE:
 			return 0;
 		default:
-			throw new IllegalArgumentException("unknown insn type "+ain.getType()+" for opcode "+ain.getOpcode()+", in "+ain.getClass().getName());
+			throw new IllegalArgumentException("unknown insn type " + ain.getType() + " for opcode " + ain.getOpcode() + ", in " + ain.getClass().getName());
 		}
 	}
 
@@ -2393,15 +2409,14 @@ class Analysis {
 			textifier.print(pw);
 		}
 
-		logger.debug(writer.toString());
+		LOGGER.atDebug().log(writer::toString);
 	}
 
 	private static void dump(Iterable<AbstractInsnNode> il) {
 		Textifier textifier = new Textifier();
 		MethodVisitor visitor = new TraceMethodVisitor(textifier);
 
-		for (Iterator<AbstractInsnNode> it = il.iterator(); it.hasNext(); ) {
-			AbstractInsnNode in = it.next();
+		for (AbstractInsnNode in : il) {
 			in.accept(visitor);
 		}
 
@@ -2411,8 +2426,11 @@ class Analysis {
 			textifier.print(pw);
 		}
 
-		logger.debug(writer.toString());
+		LOGGER.atDebug().log(writer::toString);
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(Analysis.class);
+	private Analysis() {
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Analysis.class);
 }

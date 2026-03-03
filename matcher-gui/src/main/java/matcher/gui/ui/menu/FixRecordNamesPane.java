@@ -18,8 +18,8 @@ class FixRecordNamesPane extends GridPane {
 	}
 
 	private void init() {
-		setHgap(GuiConstants.padding);
-		setVgap(GuiConstants.padding);
+		setHgap(GuiConstants.PADDING);
+		setVgap(GuiConstants.PADDING);
 
 		List<NameType> namespaces = new ArrayList<>();
 

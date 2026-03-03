@@ -3,6 +3,7 @@ package matcher.model.bcremap;
 import org.objectweb.asm.commons.Remapper;
 
 import matcher.model.NameType;
+import matcher.model.Util;
 import matcher.model.type.ClassEnv;
 import matcher.model.type.ClassInstance;
 import matcher.model.type.FieldInstance;
@@ -11,6 +12,8 @@ import matcher.model.type.MethodVarInstance;
 
 public class AsmRemapper extends Remapper {
 	public AsmRemapper(ClassEnv env, NameType nameType) {
+		super(Util.ASM_API_VERSION);
+
 		this.env = env;
 		this.nameType = nameType;
 	}
@@ -46,7 +49,7 @@ public class AsmRemapper extends Remapper {
 		MethodInstance method = cls.getMethod(name, desc);
 
 		if (method == null) {
-			assert false : String.format("can't find method %s%s in %s", name, desc, cls);;
+			assert false : String.format("can't find method %s%s in %s", name, desc, cls);
 			return name;
 		}
 

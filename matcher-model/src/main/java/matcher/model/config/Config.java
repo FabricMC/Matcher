@@ -1,7 +1,6 @@
 package matcher.model.config;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,19 +8,19 @@ import java.util.function.Function;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-public class Config {
+public final class Config {
 	public static void init(String themeId) {
 		Preferences prefs = Preferences.userRoot(); // in ~/.java/.userPrefs
 
 		try {
-			if (prefs.nodeExists(userPrefFolder)) {
-				prefs = prefs.node(userPrefFolder);
+			if (prefs.nodeExists(USER_PREF_FOLDER)) {
+				prefs = prefs.node(USER_PREF_FOLDER);
 
-				if (prefs.nodeExists(lastProjectSetupKey)) setProjectConfig(new ProjectConfig.Builder(prefs.node(lastProjectSetupKey)).build());
-				setInputDirs(loadList(prefs, lastInputDirsKey, Config::deserializePath));
-				setVerifyInputFiles(prefs.getBoolean(lastVerifyInputFilesKey, true));
+				if (prefs.nodeExists(LAST_PROJECT_SETUP_KEY)) setProjectConfig(new ProjectConfig.Builder(prefs.node(LAST_PROJECT_SETUP_KEY)).build());
+				setInputDirs(loadList(prefs, LAST_INPUT_DIRS_KEY, Config::deserializePath));
+				setVerifyInputFiles(prefs.getBoolean(LAST_VERIFY_INPUT_FILES_KEY, true));
 				setUidConfig(new UidConfig(prefs));
-				setTheme(Theme.getById(prefs.get(themeKey, Theme.getDefault().getId())));
+				setTheme(Theme.getById(prefs.get(THEME_KEY, Theme.getDefault().getId())));
 			}
 		} catch (BackingStoreException e) {
 			// ignored
@@ -49,7 +48,7 @@ public class Config {
 	}
 
 	public static List<Path> getInputDirs() {
-		return inputDirs;
+		return INPUT_DIRS;
 	}
 
 	public static UidConfig getUidConfig() {
@@ -69,8 +68,8 @@ public class Config {
 	}
 
 	public static void setInputDirs(List<Path> dirs) {
-		inputDirs.clear();
-		inputDirs.addAll(dirs);
+		INPUT_DIRS.clear();
+		INPUT_DIRS.addAll(dirs);
 	}
 
 	public static void setVerifyInputFiles(boolean value) {
@@ -92,10 +91,10 @@ public class Config {
 	}
 
 	public static void saveTheme() {
-		Preferences root = Preferences.userRoot().node(userPrefFolder);
+		Preferences root = Preferences.userRoot().node(USER_PREF_FOLDER);
 
 		try {
-			root.put(themeKey, getTheme().getId());
+			root.put(THEME_KEY, getTheme().getId());
 			root.flush();
 		} catch (BackingStoreException e) {
 			// ignored
@@ -103,12 +102,12 @@ public class Config {
 	}
 
 	public static void saveAsLast() {
-		Preferences root = Preferences.userRoot().node(userPrefFolder);
+		Preferences root = Preferences.userRoot().node(USER_PREF_FOLDER);
 
 		try {
-			if (projectConfig.isValid()) projectConfig.save(root.node(lastProjectSetupKey));
-			saveList(root.node(lastInputDirsKey), inputDirs);
-			root.putBoolean(lastVerifyInputFilesKey, verifyInputFiles);
+			if (projectConfig.isValid()) projectConfig.save(root.node(LAST_PROJECT_SETUP_KEY));
+			saveList(root.node(LAST_INPUT_DIRS_KEY), INPUT_DIRS);
+			root.putBoolean(LAST_VERIFY_INPUT_FILES_KEY, verifyInputFiles);
 			uidConfig.save(root);
 
 			root.flush();
@@ -140,17 +139,17 @@ public class Config {
 	}
 
 	static Path deserializePath(String path) {
-		return Paths.get(path);
+		return Path.of(path);
 	}
 
-	private static final String userPrefFolder = "player-obf-matcher";
-	private static final String lastProjectSetupKey = "last-project-setup";
-	private static final String lastInputDirsKey = "last-input-dirs";
-	private static final String lastVerifyInputFilesKey = "last-verify-input-files";
-	private static final String themeKey = "theme";
+	private static final String USER_PREF_FOLDER = "player-obf-matcher";
+	private static final String LAST_PROJECT_SETUP_KEY = "last-project-setup";
+	private static final String LAST_INPUT_DIRS_KEY = "last-input-dirs";
+	private static final String LAST_VERIFY_INPUT_FILES_KEY = "last-verify-input-files";
+	private static final String THEME_KEY = "theme";
 
 	private static ProjectConfig projectConfig = ProjectConfig.EMPTY;
-	private static final List<Path> inputDirs = new ArrayList<>();
+	private static final List<Path> INPUT_DIRS = new ArrayList<>();
 	private static boolean verifyInputFiles = true;
 	private static UidConfig uidConfig = new UidConfig();
 	private static Theme theme;

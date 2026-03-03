@@ -14,15 +14,15 @@ import matcher.model.config.UidConfig;
 
 public class UidSetupPane extends GridPane {
 	UidSetupPane(UidConfig config, Window window, Node okButton) {
-		//this.window = window;
+		// this.window = window;
 		this.okButton = okButton;
 
 		init(config);
 	}
 
 	private void init(UidConfig config) {
-		setHgap(GuiConstants.padding);
-		setVgap(GuiConstants.padding);
+		setHgap(GuiConstants.PADDING);
+		setVgap(GuiConstants.PADDING);
 
 		InetSocketAddress address = config.getAddress();
 
@@ -85,7 +85,7 @@ public class UidSetupPane extends GridPane {
 				versionBField.getText());
 	}
 
-	//private final Window window;
+	// private final Window window;
 	private final Node okButton;
 
 	private TextField hostField;

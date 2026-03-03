@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.beust.jcommander.JCommander;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import matcher.cli.provider.CliCommandProvider;
 import matcher.cli.provider.CliParameterProvider;
@@ -60,7 +58,6 @@ public class MatcherCli {
 		}
 	}
 
-	public static final Logger LOGGER = LoggerFactory.getLogger("Matcher CLI");
 	private final List<CliParameterProvider> paramProviders = new ArrayList<>(5);
 	private final List<CliCommandProvider> commandProviders = new ArrayList<>(5);
 	private final boolean acceptUnknownParams;

@@ -3,7 +3,6 @@ package matcher.model.type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -42,10 +41,10 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 			this.real = asmNode != null;
 			this.access = asmNode != null ? asmNode.access : approximateAccess(isStatic);
 			this.args = gatherArgs(this, desc, asmNode);
-			this.vars = cls.isInput() ? gatherVars(this, asmNode) : emptyVars;
+			this.vars = cls.isInput() ? gatherVars(this, asmNode) : EMPTY_VARS;
 			this.retType = cls.getEnv().getCreateClassInstance(Type.getReturnType(desc).getDescriptor());
 			this.signature = asmNode == null || asmNode.signature == null || !cls.isInput() ? null : MethodSignature.parse(asmNode.signature, cls.getEnv());
-			this.asmNode = !cls.getEnv().isShared() ? asmNode : null;
+			this.asmNode = cls.getEnv().isShared() ? null : asmNode;
 		} catch (InvalidSharedEnvQueryException e) {
 			throw e.checkOrigin(cls);
 		}
@@ -63,7 +62,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 
 	private static MethodVarInstance[] gatherArgs(MethodInstance method, String desc, MethodNode asmNode) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (argTypes.length == 0) return emptyVars;
+		if (argTypes.length == 0) return EMPTY_VARS;
 
 		MethodVarInstance[] args = new MethodVarInstance[argTypes.length];
 		List<LocalVariableNode> locals;
@@ -123,9 +122,9 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 	}
 
 	private static MethodVarInstance[] gatherVars(MethodInstance method, MethodNode asmNode) {
-		if (asmNode == null) return emptyVars;
-		if (asmNode.localVariables == null) return emptyVars; // TODO: generate?
-		if (asmNode.localVariables.isEmpty()) return emptyVars;
+		if (asmNode == null) return EMPTY_VARS;
+		if (asmNode.localVariables == null) return EMPTY_VARS; // TODO: generate?
+		if (asmNode.localVariables.isEmpty()) return EMPTY_VARS;
 
 		InsnList il = asmNode.instructions;
 		AbstractInsnNode firstInsn = il.getFirst();
@@ -147,10 +146,10 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 			vars.add(var);
 		}
 
-		if (vars.isEmpty()) return emptyVars;
+		if (vars.isEmpty()) return EMPTY_VARS;
 
 		// stable sort by start bci
-		Collections.sort(vars, Comparator.comparingInt(var -> il.indexOf(var.start))); // Collections.sort is specified as stable, List.sort isn't (only implNote in OpenJDK 8)
+		vars.sort(Comparator.comparingInt(var -> il.indexOf(var.start)));
 
 		MethodVarInstance[] ret = new MethodVarInstance[vars.size()];
 
@@ -260,7 +259,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 	}
 
 	public MethodVarInstance getArg(int index) {
-		if (index < 0 || index >= args.length) throw new IllegalArgumentException("invalid arg index: "+index);
+		if (index < 0 || index >= args.length) throw new IllegalArgumentException("invalid arg index: " + index);
 
 		return args[index];
 	}
@@ -270,7 +269,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 	}
 
 	public MethodVarInstance getVar(int index) {
-		if (index < 0 || index >= vars.length) throw new IllegalArgumentException("invalid var index: "+index);
+		if (index < 0 || index >= vars.length) throw new IllegalArgumentException("invalid var index: " + index);
 
 		return vars[index];
 	}
@@ -289,13 +288,11 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 
 	public MethodVarInstance getArgOrVar(int lvIndex, int start, int end) {
 		if (args.length > 0 && lvIndex <= args[args.length - 1].getLvIndex()) {
-			for (int i = 0; i < args.length; i++) {
-				MethodVarInstance arg = args[i];
-
+			for (MethodVarInstance arg : args) {
 				if (arg.getLvIndex() == lvIndex) {
 					assert arg.getStartInsn() < 0
-					|| start < arg.getEndInsn() && end > arg.getStartInsn()
-					|| arg.getStartInsn() < end && arg.getEndInsn() > start;
+							|| start < arg.getEndInsn() && end > arg.getStartInsn()
+							|| arg.getStartInsn() < end && arg.getEndInsn() > start;
 
 					return arg;
 				}
@@ -304,8 +301,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 			MethodVarInstance candidate = null;
 			boolean conflict = false;
 
-			for (int i = 0; i < vars.length; i++) {
-				MethodVarInstance var = vars[i];
+			for (MethodVarInstance var : vars) {
 				if (var.getLvIndex() != lvIndex) continue;
 
 				if (start < var.getEndInsn() && end > var.getStartInsn()) { // requested interval within var interval (assumes matcher's interval never too loose)
@@ -501,7 +497,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 		int uid = getUid();
 		if (uid < 0) return null;
 
-		return cls.env.getGlobal().methodUidPrefix+uid;
+		return ClassEnvironment.METHOD_UID_PREFIX +uid;
 	}
 
 	@Override
@@ -570,7 +566,7 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 		return name+desc;
 	}
 
-	private static final MethodVarInstance[] emptyVars = new MethodVarInstance[0];
+	private static final MethodVarInstance[] EMPTY_VARS = new MethodVarInstance[0];
 
 	final boolean real;
 	final int access;

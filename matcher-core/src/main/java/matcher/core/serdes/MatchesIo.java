@@ -11,9 +11,11 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.DoubleConsumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import matcher.core.Matcher;
 import matcher.model.config.Config;
@@ -27,7 +29,7 @@ import matcher.model.type.MemberInstance;
 import matcher.model.type.MethodInstance;
 import matcher.model.type.MethodVarInstance;
 
-public class MatchesIo {
+public final class MatchesIo {
 	public static void read(Path path, List<Path> inputDirs, boolean verifyInputs, Matcher matcher, DoubleConsumer progressReceiver) {
 		ClassEnvironment env = matcher.getEnv();
 
@@ -83,7 +85,7 @@ public class MatchesIo {
 
 						final int indent = 2;
 						int sizeEnd = line.indexOf('\t', indent);
-						long size = InputFile.unknownSize;
+						long size = InputFile.UNKNOWN_SIZE;
 						byte[] hash = null;
 						HashType hashType = null;
 						String url = null; // TODO: save url?
@@ -143,7 +145,7 @@ public class MatchesIo {
 							} else if (line.startsWith("\tnon-obf mem b\t")) {
 								nonObfuscatedMemberPatternB = line.substring("\tnon-obf mem b\t".length());
 							} else {
-								throw new IOException("invalid header: "+line);
+								throw new IOException("invalid header: " + line);
 							}
 						}
 					}
@@ -169,12 +171,12 @@ public class MatchesIo {
 						ClassInstance target;
 
 						if (currentClass == null) {
-							Matcher.LOGGER.warn("Unknown a class {}", idA);
+							LOGGER.warn("Unknown a class {}", idA);
 						} else if ((target = env.getLocalClsByIdB(idB)) == null) {
-							Matcher.LOGGER.warn("Unknown b class {}", idA);
+							LOGGER.warn("Unknown b class {}", idA);
 							currentClass = null;
 						} else if (!currentClass.isMatchable() || !target.isMatchable()) {
-							Matcher.LOGGER.warn("Unmatchable a/b class {}/{}", idA, idB);
+							LOGGER.warn("Unmatchable a/b class {}/{}", idA, idB);
 							currentClass = null;
 						} else {
 							currentClass.setMatchable(true);
@@ -191,7 +193,7 @@ public class MatchesIo {
 						currentMethod = null;
 
 						if (cls == null) {
-							Matcher.LOGGER.warn("Unknown {} class {}", side, id);
+							LOGGER.warn("Unknown {} class {}", side, id);
 						} else {
 							if (cls.hasMatch()) matcher.unmatch(cls);
 							cls.setMatchable(false);
@@ -210,11 +212,11 @@ public class MatchesIo {
 							MethodInstance b;
 
 							if (a == null) {
-								Matcher.LOGGER.warn("Unknown a method {} in class {}", idA, currentClass);
+								LOGGER.warn("Unknown a method {} in class {}", idA, currentClass);
 							} else if ((b = currentClass.getMatch().getMethod(idB)) == null) {
-								Matcher.LOGGER.warn("Unknown b method {} in class {}", idB, currentClass.getMatch());
+								LOGGER.warn("Unknown b method {} in class {}", idB, currentClass.getMatch());
 							} else if (!a.isMatchable() || !b.isMatchable()) {
-								Matcher.LOGGER.warn("Unmatchable a/b method {}/{}", idA, idB);
+								LOGGER.warn("Unmatchable a/b method {}/{}", idA, idB);
 								currentMethod = null;
 							} else {
 								a.setMatchable(true);
@@ -226,11 +228,11 @@ public class MatchesIo {
 							FieldInstance b;
 
 							if (a == null) {
-								Matcher.LOGGER.warn("Unknown a field {} in class {}", idA, currentClass);
+								LOGGER.warn("Unknown a field {} in class {}", idA, currentClass);
 							} else if ((b = currentClass.getMatch().getField(idB)) == null) {
-								Matcher.LOGGER.warn("Unknown b field {} in class {}", idB, currentClass.getMatch());
+								LOGGER.warn("Unknown b field {} in class {}", idB, currentClass.getMatch());
 							} else if (!a.isMatchable() || !b.isMatchable()) {
-								Matcher.LOGGER.warn("Unmatchable a/b field {}/{}", idA, idB);
+								LOGGER.warn("Unmatchable a/b field {}/{}", idA, idB);
 							} else {
 								a.setMatchable(true);
 								b.setMatchable(true);
@@ -250,12 +252,12 @@ public class MatchesIo {
 						MemberInstance<?> member = line.charAt(1) == 'm' ? cls.getMethod(id) : cls.getField(id);
 
 						if (member == null) {
-							Matcher.LOGGER.warn("Unknown member {} in class {}", id, cls);
+							LOGGER.warn("Unknown member {} in class {}", id, cls);
 						} else {
 							if (member.hasMatch()) matcher.unmatch(member);
 
 							if (!member.setMatchable(false)) {
-								Matcher.LOGGER.warn("Can't mark {} as unmatchable, already matched?", member);
+								LOGGER.warn("Can't mark {} as unmatchable, already matched?", member);
 							}
 						}
 					} else if (line.startsWith("\t\tma\t") || line.startsWith("\t\tmv\t")) { // method arg or method var
@@ -282,11 +284,11 @@ public class MatchesIo {
 						}
 
 						if (idxA < 0 || idxA >= varsA.length) {
-							Matcher.LOGGER.warn("Unknown a method {} {} in method {}", type, idxA, currentMethod);
+							LOGGER.warn("Unknown a method {} {} in method {}", type, idxA, currentMethod);
 						} else if (idxB < 0 || idxB >= varsB.length) {
-							Matcher.LOGGER.warn("Unknown b method {} {} in method {}", type, idxB, matchedMethod);
+							LOGGER.warn("Unknown b method {} {} in method {}", type, idxB, matchedMethod);
 						} else if (!varsA[idxA].isMatchable() || !varsB[idxB].isMatchable()) {
-							Matcher.LOGGER.warn("Unmatchable a/b method {} {}/{} in method {}/{}",
+							LOGGER.warn("Unmatchable a/b method {} {}/{} in method {}/{}",
 									type, idxA, idxB, currentMethod, matchedMethod);
 							currentMethod = null;
 						} else {
@@ -317,8 +319,7 @@ public class MatchesIo {
 						}
 
 						if (idx < 0 || idx >= vars.length) {
-							Matcher.LOGGER.warn("Unknown a method {} {} in method {}", type, idx, method);
-							continue;
+							LOGGER.warn("Unknown a method {} {} in method {}", type, idx, method);
 						} else {
 							MethodVarInstance var = vars[idx];
 
@@ -356,15 +357,12 @@ public class MatchesIo {
 
 		if (classes.isEmpty()) return false;
 
-		classes.sort(new Comparator<ClassInstance>() {
-			@Override
-			public int compare(ClassInstance a, ClassInstance b) {
-				if (a.getEnv() != b.getEnv()) {
-					return a.getEnv() == env.getEnvA() ? -1 : 1;
-				}
-
-				return a.getId().compareTo(b.getId());
+		classes.sort((a, b) -> {
+			if (a.getEnv() != b.getEnv()) {
+				return a.getEnv() == env.getEnvA() ? -1 : 1;
 			}
+
+			return a.getId().compareTo(b.getId());
 		});
 
 		try (Writer writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
@@ -555,7 +553,12 @@ public class MatchesIo {
 		out.write('\n');
 	}
 
-	private enum ParserState {
-		START, HEADER, FILES_A, FILES_B, CP_FILES, CP_FILES_A, CP_FILES_B, CONTENT;
+	private MatchesIo() {
 	}
+
+	private enum ParserState {
+		START, HEADER, FILES_A, FILES_B, CP_FILES, CP_FILES_A, CP_FILES_B, CONTENT
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(MatchesIo.class);
 }

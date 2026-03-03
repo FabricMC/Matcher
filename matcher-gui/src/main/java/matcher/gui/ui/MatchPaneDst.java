@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
@@ -17,8 +18,9 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import matcher.core.Matcher;
 import matcher.gui.MatcherGui;
 import matcher.model.NameType;
 import matcher.model.classifier.ClassClassifier;
@@ -108,7 +110,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 		protected String getText(RankResult<? extends Matchable<?>> item) {
 			boolean full = item.getSubject() instanceof ClassInstance;
 
-			return String.format("%.3f %s", item.getScore(), item.getSubject().getDisplayName(gui.getNameType(), full));
+			return "%.3f %s".formatted(item.getScore(), item.getSubject().getDisplayName(gui.getNameType(), full));
 		}
 	}
 
@@ -162,12 +164,12 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	}
 
 	private static ClassInstance getClass(Matchable<?> m) {
-		if (m instanceof ClassInstance) {
-			return (ClassInstance) m;
-		} else if (m instanceof MemberInstance<?>) {
-			return ((MemberInstance<?>) m).getCls();
-		} else if (m instanceof MethodVarInstance) {
-			return ((MethodVarInstance) m).getMethod().getCls();
+		if (m instanceof ClassInstance cls) {
+			return cls;
+		} else if (m instanceof MemberInstance<?> member) {
+			return member.getCls();
+		} else if (m instanceof MethodVarInstance var) {
+			return var.getMethod().getCls();
 		} else {
 			throw new IllegalStateException();
 		}
@@ -184,10 +186,10 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	private static MemberInstance<?> getMember(Matchable<?> m) {
 		if (m instanceof ClassInstance) {
 			return null;
-		} else if (m instanceof MemberInstance) {
-			return (MemberInstance<?>) m;
-		} else if (m instanceof MethodVarInstance) {
-			return ((MethodVarInstance) m).getMethod();
+		} else if (m instanceof MemberInstance<?> member) {
+			return member;
+		} else if (m instanceof MethodVarInstance var) {
+			return var.getMethod();
 		} else {
 			throw new IllegalStateException();
 		}
@@ -204,10 +206,10 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	private static MethodInstance getMethod(Matchable<?> m) {
 		if (m instanceof ClassInstance || m instanceof FieldInstance) {
 			return null;
-		} else if (m instanceof MethodInstance) {
-			return (MethodInstance) m;
-		} else if (m instanceof MethodVarInstance) {
-			return ((MethodVarInstance) m).getMethod();
+		} else if (m instanceof MethodInstance mth) {
+			return mth;
+		} else if (m instanceof MethodVarInstance var) {
+			return var.getMethod();
 		} else {
 			throw new IllegalStateException();
 		}
@@ -224,8 +226,8 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	private static FieldInstance getField(Matchable<?> m) {
 		if (m instanceof ClassInstance || m instanceof MethodInstance || m instanceof MethodVarInstance) {
 			return null;
-		} else if (m instanceof FieldInstance) {
-			return (FieldInstance) m;
+		} else if (m instanceof FieldInstance fld) {
+			return fld;
 		} else {
 			throw new IllegalStateException();
 		}
@@ -242,8 +244,8 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	private static MethodVarInstance getMethodVar(Matchable<?> m) {
 		if (m instanceof ClassInstance || m instanceof MethodInstance || m instanceof FieldInstance) {
 			return null;
-		} else if (m instanceof MethodVarInstance) {
-			return (MethodVarInstance) m;
+		} else if (m instanceof MethodVarInstance var) {
+			return var;
 		} else {
 			throw new IllegalStateException();
 		}
@@ -254,18 +256,12 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 		RankResult<? extends Matchable<?>> result = matchList.getSelectionModel().getSelectedItem();
 		if (result == null) return null;
 
-		switch (type) {
-		case Class:
-			return result.getSubject() instanceof ClassInstance ? result : null;
-		case Method:
-			return result.getSubject() instanceof MethodInstance ? result : null;
-		case Field:
-			return result.getSubject() instanceof FieldInstance ? result : null;
-		case MethodVar:
-			return result.getSubject() instanceof MethodVarInstance ? result : null;
-		}
-
-		throw new IllegalArgumentException("invalid type: "+type);
+		return switch (type) {
+		case Class -> result.getSubject() instanceof ClassInstance ? result : null;
+		case Method -> result.getSubject() instanceof MethodInstance ? result : null;
+		case Field -> result.getSubject() instanceof FieldInstance ? result : null;
+		case MethodVar -> result.getSubject() instanceof MethodVarInstance ? result : null;
+		};
 	}
 
 	@Override
@@ -322,7 +318,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 	}
 
 	private static Comparator<RankResult<? extends Matchable<?>>> getScoreComparator() {
-		return Comparator.<RankResult<? extends Matchable<?>>>comparingDouble(r -> r.getScore()).reversed();
+		return Comparator.<RankResult<? extends Matchable<?>>>comparingDouble(RankResult::getScore).reversed();
 	}
 
 	private void updateResults(Matchable<?> oldSelection, boolean simpleMode) {
@@ -337,7 +333,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 			for (RankResult<? extends Matchable<?>> item : rankResults) {
 				if (simpleMode) {
 					Matchable<?> matchable = item.getSubject();
-					String matchableText = String.format("%.3f %s", item.getScore(),
+					String matchableText = "%.3f %s".formatted(item.getScore(),
 							matchable.getDisplayName(gui.getNameType(), matchable instanceof ClassInstance).toLowerCase(Locale.ROOT));
 
 					if (matchableText.contains(filterStr.trim())) {
@@ -424,7 +420,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 
 		for (String part : parts) {
 			String op = part.toLowerCase(Locale.ENGLISH);
-			//Matcher.LOGGER.debug("stack: {}, op: {}", stack, op);
+			// LOGGER.debug("stack: {}, op: {}", stack, op);
 			byte opTypeA = OP_TYPE_NONE;
 			byte opTypeB = OP_TYPE_NONE;
 
@@ -491,7 +487,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 				if (type == OP_TYPE_NONE) continue;
 
 				if (stack.isEmpty()) {
-					Matcher.LOGGER.error("Stack underflow");
+					LOGGER.error("Stack underflow");
 					return null;
 				}
 
@@ -506,7 +502,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 						|| type == OP_TYPE_COMPARABLE && operand instanceof Comparable<?>;
 
 				if (!valid) {
-					Matcher.LOGGER.debug("Invalid operand type");
+					LOGGER.debug("Invalid operand type");
 					return null;
 				}
 
@@ -514,11 +510,11 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 					operand = ((RankResult<? extends Matchable<?>>) operand).getSubject();
 				} else if (type == OP_TYPE_CLASS && operand instanceof RankResult<?>) {
 					operand = getClass(((RankResult<? extends Matchable<?>>) operand).getSubject());
-				} else if (type == OP_TYPE_CLASS && operand instanceof String) {
-					ClassInstance cls = env.getClsByName((String) operand);
+				} else if (type == OP_TYPE_CLASS && operand instanceof String clsName) {
+					ClassInstance cls = env.getClsByName(clsName);
 
 					if (cls == null) {
-						Matcher.LOGGER.debug("Unknown class {}", operand);
+						LOGGER.debug("Unknown class {}", clsName);
 						return null;
 					} else {
 						operand = cls;
@@ -532,7 +528,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 				}
 			}
 
-			//Matcher.LOGGER.debug("opA: {}, opB: {}", opA, opB);
+			// LOGGER.debug("opA: {}, opB: {}", opA, opB);
 
 			switch (op) {
 			case "a":
@@ -581,7 +577,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 				stack.add(Boolean.logicalOr((Boolean) opA, (Boolean) opB));
 				break;
 			case "not":
-				stack.add(!((Boolean) opA));
+				stack.add(!(Boolean) opA);
 				break;
 			case "startswith":
 				stack.add(((String) opA).startsWith((String) opB));
@@ -611,16 +607,16 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 			}
 		}
 
-		//Matcher.LOGGER.debug("Res stack: {}", stack);
+		// LOGGER.debug("Res stack: {}", stack);
 
 		if (stack.isEmpty() || stack.size() > 2) {
-			Matcher.LOGGER.info("No result found");
+			LOGGER.info("No result found");
 			return null;
 		} else if (stack.size() == 1) {
 			if (stack.get(0) instanceof Boolean) {
 				return (Boolean) stack.get(0);
 			} else {
-				Matcher.LOGGER.error("Invalid result");
+				LOGGER.error("Invalid result");
 				return null;
 			}
 		} else { // 2 elements on the stack, use equals
@@ -633,24 +629,24 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 		if (a == null || b == null) return false;
 
 		if (a.getClass() != b.getClass()) {
-			if (a instanceof RankResult<?>) a = ((RankResult<?>) a).getSubject();
-			if (b instanceof RankResult<?>) b = ((RankResult<?>) b).getSubject();
+			if (a instanceof RankResult<?> rankResult) a = rankResult.getSubject();
+			if (b instanceof RankResult<?> rankResult) b = rankResult.getSubject();
 		}
 
 		if (a.getClass() != b.getClass()) {
 			if (a instanceof ClassInstance) {
-				if (b instanceof Matchable<?>) {
-					b = getClass((Matchable<?>) b);
-				} else if (b instanceof String) {
-					b = env.getClsByName((String) b);
+				if (b instanceof Matchable<?> matchable) {
+					b = getClass(matchable);
+				} else if (b instanceof String clsName) {
+					b = env.getClsByName(clsName);
 				}
 			}
 
 			if (b instanceof ClassInstance) {
-				if (a instanceof Matchable<?>) {
-					a = getClass((Matchable<?>) a);
-				} else if (a instanceof String) {
-					a = env.getClsByName((String) a);
+				if (a instanceof Matchable<?> matchable) {
+					a = getClass(matchable);
+				} else if (a instanceof String clsName) {
+					a = env.getClsByName(clsName);
 				}
 			}
 		}
@@ -710,17 +706,13 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 
 			if (newSrcSelection == null) { // no class selected
 				return;
-			} else if (newSrcSelection instanceof ClassInstance) { // unmatched class or no member/method var selected
-				ClassInstance cls = (ClassInstance) newSrcSelection;
+			} else if (newSrcSelection instanceof ClassInstance cls) { // unmatched class or no member/method var selected
 				ranker = () -> ClassClassifier.rankParallel(cls, cmpClasses.toArray(new ClassInstance[0]), matchLevel, env, maxMismatch);
-			} else if (newSrcSelection instanceof MethodInstance) { // unmatched method or no method var selected
-				MethodInstance method = (MethodInstance) newSrcSelection;
-				ranker = () -> MethodClassifier.rank(method, method.getCls().getMatch().getMethods(), matchLevel, env, maxMismatch);
-			} else if (newSrcSelection instanceof FieldInstance) { // field
-				FieldInstance field = (FieldInstance) newSrcSelection;
-				ranker = () -> FieldClassifier.rank(field, field.getCls().getMatch().getFields(), matchLevel, env, maxMismatch);
-			} else if (newSrcSelection instanceof MethodVarInstance) { // method arg/var
-				MethodVarInstance var = (MethodVarInstance) newSrcSelection;
+			} else if (newSrcSelection instanceof MethodInstance mth) { // unmatched method or no method var selected
+				ranker = () -> MethodClassifier.rank(mth, mth.getCls().getMatch().getMethods(), matchLevel, env, maxMismatch);
+			} else if (newSrcSelection instanceof FieldInstance fld) { // field
+				ranker = () -> FieldClassifier.rank(fld, fld.getCls().getMatch().getFields(), matchLevel, env, maxMismatch);
+			} else if (newSrcSelection instanceof MethodVarInstance var) { // method arg/var
 				MethodInstance cmpMethod = var.getMethod().getMatch();
 				MethodVarInstance[] cmp = var.isArg() ? cmpMethod.getArgs() : cmpMethod.getVars();
 				ranker = () -> MethodVarClassifier.rank(var, cmp, matchLevel, env, maxMismatch);
@@ -733,7 +725,8 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 			// update matches list
 			MatcherGui.runAsyncTask(ranker).whenComplete((res, exc) -> {
 				if (exc != null) {
-					exc.printStackTrace();
+					LOGGER.error("Error while ranking", exc);
+					gui.showAlert(AlertType.ERROR, "Ranking Error", "An error occurred while ranking matches", exc.getMessage());
 				} else if (taskId == cTaskId) {
 					assert rankResults.isEmpty();
 					rankResults.addAll(res);
@@ -773,6 +766,7 @@ public class MatchPaneDst extends SplitPane implements IFwdGuiComponent, ISelect
 		private Matchable<?> oldDstSelection;
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(MatchPaneDst.class);
 	private final MatcherGui gui;
 	private final MatchPaneSrc srcPane;
 	private final Collection<IGuiComponent> components = new ArrayList<>();

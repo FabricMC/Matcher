@@ -44,9 +44,9 @@ public class MethodInfoTab extends Tab implements IGuiComponent {
 
 	private void init() {
 		GridPane grid = new GridPane();
-		grid.setPadding(new Insets(GuiConstants.padding));
-		grid.setHgap(GuiConstants.padding);
-		grid.setVgap(GuiConstants.padding);
+		grid.setPadding(new Insets(GuiConstants.PADDING));
+		grid.setHgap(GuiConstants.PADDING);
+		grid.setVgap(GuiConstants.PADDING);
 		int row = 0;
 
 		row = addRow("Owner", ownerLabel, grid, row);
@@ -55,7 +55,7 @@ public class MethodInfoTab extends Tab implements IGuiComponent {
 		row = addRow("Mapped name", mappedNameLabel, grid, row);
 
 		for (int i = 0; i < NameType.AUX_COUNT; i++) {
-			row = addRow("AUX name "+(i+1), auxNameLabels[i], grid, row);
+			row = addRow("AUX name " + (i + 1), auxNameLabels[i], grid, row);
 		}
 
 		row = addRow("UID", uidLabel, grid, row);
@@ -81,7 +81,7 @@ public class MethodInfoTab extends Tab implements IGuiComponent {
 	}
 
 	private static int addRow(String name, Node content, GridPane grid, int row) {
-		Label label = new Label(name+":");
+		Label label = new Label(name + ":");
 		label.setMinWidth(Label.USE_PREF_SIZE);
 		grid.add(label, 0, row);
 		GridPane.setValignment(label, VPos.TOP);
@@ -160,8 +160,8 @@ public class MethodInfoTab extends Tab implements IGuiComponent {
 
 			typeLabel.setText(method.getType().name());
 
-			parentLabel.setText(!method.getParents().isEmpty() ? formatClass(method.getParents(), nameType) : "-");
-			childLabel.setText(!method.isFinal() ? formatClass(method.getChildren(), nameType) : "-");
+			parentLabel.setText(method.getParents().isEmpty() ? "-" : formatClass(method.getParents(), nameType));
+			childLabel.setText(method.isFinal() ? "-" : formatClass(method.getChildren(), nameType));
 
 			if (method.getAllHierarchyMembers() != null && method.getAllHierarchyMembers().size() > 1) {
 				hierarchyLabel.setText(format(method.getAllHierarchyMembers().stream().filter(m -> m != method).map(MethodInstance::getCls), nameType));

@@ -13,7 +13,6 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
@@ -56,19 +55,19 @@ public final class InputFile {
 	}
 
 	public InputFile(String fileName, String url) {
-		this(fileName, unknownSize, null, null, url);
+		this(fileName, UNKNOWN_SIZE, null, null, url);
 	}
 
 	public InputFile(String fileName, Path pathHint, String url) {
-		this(fileName, unknownSize, null, null, pathHint, url);
+		this(fileName, UNKNOWN_SIZE, null, null, pathHint, url);
 	}
 
 	public InputFile(String fileName, byte[] hash, HashType hashType, String url) {
-		this(fileName, unknownSize, hash, hashType, url);
+		this(fileName, UNKNOWN_SIZE, hash, hashType, url);
 	}
 
 	public InputFile(String fileName, byte[] hash, HashType hashType, Path pathHint, String url) {
-		this(fileName, unknownSize, hash, hashType, pathHint, url);
+		this(fileName, UNKNOWN_SIZE, hash, hashType, pathHint, url);
 	}
 
 	public InputFile(String fileName, long size, byte[] hash, HashType hashType, String url) {
@@ -116,7 +115,8 @@ public final class InputFile {
 
 		for (Path inputDir : inputDirs) {
 			Files.walkFileTree(inputDir, new SimpleFileVisitor<>() {
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
 					if (InputFile.this.equals(file)) {
 						res.set(file);
 
@@ -141,11 +141,11 @@ public final class InputFile {
 			try {
 				return downloadToTmp(url);
 			} catch (IOException | InterruptedException e) {
-				throw new IOException("download of "+url+" failed: "+e.toString());
+				throw new IOException("download of " + url + " failed: " + e);
 			}
 		}
 
-		throw new IOException("can't find input "+this);
+		throw new IOException("can't find input " + this);
 	}
 
 	public boolean hasPath() {
@@ -221,7 +221,7 @@ public final class InputFile {
 		}
 
 		public byte[] hash(Path path) throws IOException {
-			TlData tlData = tlDatas.get();
+			TlData tlData = TL_DATAS.get();
 
 			MessageDigest digest = tlData.digests.get(this);
 			ByteBuffer buffer = tlData.buffer;
@@ -251,7 +251,7 @@ public final class InputFile {
 			final ByteBuffer buffer;
 		}
 
-		private static final ThreadLocal<TlData> tlDatas = ThreadLocal.withInitial(TlData::new);
+		private static final ThreadLocal<TlData> TL_DATAS = ThreadLocal.withInitial(TlData::new);
 
 		public final String algorithm;
 	}
@@ -260,7 +260,7 @@ public final class InputFile {
 		Path ret = dlTmp;
 		if (ret != null || !create) return ret;
 
-		Path dir = Paths.get("dlTmp");
+		Path dir = Path.of("dlTmp");
 		int suffix = 0;
 		Path path;
 
@@ -277,36 +277,37 @@ public final class InputFile {
 
 		final Path res = ret;
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				try {
-					Files.walkFileTree(res, new SimpleFileVisitor<>() {
-						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-							System.out.println("delete file "+file);
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.info("Deleting dlTmp {}", res);
 
-							if (file.normalize().toAbsolutePath().startsWith(res)) {
-								Files.delete(file);
-							}
+			try {
+				Files.walkFileTree(res, new SimpleFileVisitor<>() {
+					@Override
+					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+						LOGGER.debug("Deleting file {}", file);
 
-							return FileVisitResult.CONTINUE;
+						if (file.normalize().toAbsolutePath().startsWith(res)) {
+							Files.delete(file);
 						}
 
-						public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-							System.out.println("delete dir "+dir);
+						return FileVisitResult.CONTINUE;
+					}
 
-							if (dir.normalize().toAbsolutePath().startsWith(res)) {
-								Files.delete(dir);
-							}
+					@Override
+					public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+						LOGGER.debug("Deleting dir {}", dir);
 
-							return FileVisitResult.CONTINUE;
+						if (dir.normalize().toAbsolutePath().startsWith(res)) {
+							Files.delete(dir);
 						}
-					});
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+
+						return FileVisitResult.CONTINUE;
+					}
+				});
+			} catch (IOException e) {
+				LOGGER.error("Exception while deleting dlTmp", e);
 			}
-		});
+		}));
 
 		dlTmp = ret;
 
@@ -316,7 +317,7 @@ public final class InputFile {
 	private static Path downloadToTmp(String url) throws IOException, InterruptedException {
 		LOGGER.info("downloading {}", url);
 
-		String name = url.substring(url.lastIndexOf('/') + 1).replaceAll("[^\\w\\.\\- ]", "x");
+		String name = url.substring(url.lastIndexOf('/') + 1).replaceAll("[^\\w.\\- ]", "x");
 		if (name.isEmpty()) name = "dl";
 		int suffix = 0;
 		Path dlTmp = getDlTmp(true);
@@ -330,7 +331,7 @@ public final class InputFile {
 		HttpResponse<InputStream> response = HTTP_CLIENT.send(request, BodyHandlers.ofInputStream());
 
 		if (response.statusCode() != 200) {
-			throw new IOException("bad http status code: "+response.statusCode());
+			throw new IOException("bad http status code: " + response.statusCode());
 		}
 
 		try (InputStream is = response.body()) {
@@ -340,7 +341,7 @@ public final class InputFile {
 		return out;
 	}
 
-	public static final long unknownSize = -1;
+	public static final long UNKNOWN_SIZE = -1;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputFile.class);
 	private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();

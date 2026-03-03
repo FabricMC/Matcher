@@ -84,7 +84,7 @@ public final class MethodVarInstance implements Matchable<MethodVarInstance> {
 		} else if (type == NameType.UID_PLAIN) {
 			ClassEnvironment env = method.cls.env.getGlobal();
 			int uid = getUid();
-			if (uid >= 0) return (isArg ? env.argUidPrefix : env.varUidPrefix)+uid;
+			if (uid >= 0) return (isArg ? ClassEnvironment.ARG_UID_PREFIX : ClassEnvironment.VAR_UID_PREFIX)+uid;
 		}
 
 		boolean locTmp = type == NameType.MAPPED_LOCTMP_PLAIN || type == NameType.LOCTMP_PLAIN;

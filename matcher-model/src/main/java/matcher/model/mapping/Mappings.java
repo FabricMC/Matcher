@@ -18,11 +18,13 @@ import net.fabricmc.mappingio.MappingVisitor;
 import net.fabricmc.mappingio.MappingWriter;
 import net.fabricmc.mappingio.adapter.MappingSourceNsSwitch;
 import net.fabricmc.mappingio.adapter.RegularAsFlatMappingVisitor;
+import net.fabricmc.mappingio.format.FeatureSet.ElementCommentSupport;
 import net.fabricmc.mappingio.format.MappingFormat;
 
 import matcher.model.NameType;
 import matcher.model.Util;
 import matcher.model.type.ClassEnv;
+import matcher.model.type.ClassEnvironment;
 import matcher.model.type.ClassInstance;
 import matcher.model.type.FieldInstance;
 import matcher.model.type.LocalClassEnv;
@@ -32,7 +34,7 @@ import matcher.model.type.MemberInstance;
 import matcher.model.type.MethodInstance;
 import matcher.model.type.MethodVarInstance;
 
-public class Mappings {
+public final class Mappings {
 	public static void load(Path path, MappingFormat format,
 			String nsSource, String nsTarget,
 			MappingField fieldSource, MappingField fieldTarget,
@@ -47,24 +49,24 @@ public class Mappings {
 				@Override
 				public void visitNamespaces(String srcNamespace, List<String> dstNamespaces) {
 					dstNs = dstNamespaces.indexOf(nsTarget);
-					if (dstNs < 0) throw new RuntimeException("missing target namespace: "+nsTarget);
+					if (dstNs < 0) throw new RuntimeException("missing target namespace: " + nsTarget);
 				}
 
 				@Override
 				public void visitMetadata(String key, String value) {
 					if (fieldTarget == MappingField.UID) {
 						switch (key) {
-						case Mappings.metaUidNextClass: {
+						case Mappings.META_UID_NEXT_CLASS: {
 							int val = Integer.parseInt(value);
 							if (replace || env.getGlobal().nextClassUid < val) env.getGlobal().nextClassUid = val;
 							break;
 						}
-						case Mappings.metaUidNextMethod: {
+						case Mappings.META_UID_NEXT_METHOD: {
 							int val = Integer.parseInt(value);
 							if (replace || env.getGlobal().nextMethodUid < val) env.getGlobal().nextMethodUid = val;
 							break;
 						}
-						case Mappings.metaUidNextField: {
+						case Mappings.META_UID_NEXT_FIELD: {
 							int val = Integer.parseInt(value);
 							if (replace || env.getGlobal().nextFieldUid < val) env.getGlobal().nextFieldUid = val;
 							break;
@@ -83,7 +85,7 @@ public class Mappings {
 					cur = cls = findClass(srcName, fieldSource, env);
 
 					if (cls == null) {
-						if (warnedClasses.add(srcName)) logger.warn("Can't find mapped class {}", srcName);
+						if (warnedClasses.add(srcName)) LOGGER.warn("Can't find mapped class {}", srcName);
 						return false;
 					}
 
@@ -99,7 +101,7 @@ public class Mappings {
 					cur = method = cls.getMethod(srcName, srcDesc, fieldSource.type);
 
 					if (method == null || !method.isReal()) {
-						logger.warn("Can't find mapped method {}/{}{}",
+						LOGGER.warn("Can't find mapped method {}/{}{}",
 								cls.getName(fieldSource.type), srcName, srcDesc);
 						return false;
 					}
@@ -135,28 +137,28 @@ public class Mappings {
 
 				private MethodVarInstance getMethodVar(int varIndex, int lvIndex, int startOpIdx, int asmIndex, boolean isArg) {
 					if (isArg && varIndex < -1 || varIndex >= method.getArgs().length) {
-						logger.warn("Invalid var index {} for method {}", varIndex, method);
+						LOGGER.warn("Invalid var index {} for method {}", varIndex, method);
 					} else if (lvIndex < -1 || lvIndex >= (isArg ? method.getArgs() : method.getVars()).length * 2 + 1) {
-						logger.warn("Invalid lv index {} for method {}", lvIndex, method);
+						LOGGER.warn("Invalid lv index {} for method {}", lvIndex, method);
 					} else if (asmIndex < -1) {
-						logger.warn("Invalid lv asm index {} for method {}", asmIndex, method);
+						LOGGER.warn("Invalid lv asm index {} for method {}", asmIndex, method);
 					} else {
 						if (!isArg || varIndex == -1) {
 							if (asmIndex >= 0) {
 								varIndex = findVarIndexByAsm(isArg ? method.getArgs() : method.getVars(), asmIndex);
 
 								if (varIndex == -1) {
-									logger.warn("Invalid lv asm index {} for method {}", asmIndex, method);
+									LOGGER.warn("Invalid lv asm index {} for method {}", asmIndex, method);
 									return null;
 								}
 							} else if (lvIndex <= -1) {
-								logger.warn("Missing arg+lvt index {} for method {}", lvIndex, method);
+								LOGGER.warn("Missing arg+lvt index {} for method {}", lvIndex, method);
 								return null;
 							} else {
 								varIndex = findVarIndexByLv(isArg ? method.getArgs() : method.getVars(), lvIndex, startOpIdx);
 
 								if (varIndex == -1) {
-									logger.warn("Invalid lv index {} for method {}", lvIndex, method);
+									LOGGER.warn("Invalid lv index {} for method {}", lvIndex, method);
 									return null;
 								}
 							}
@@ -165,12 +167,12 @@ public class Mappings {
 						MethodVarInstance var = isArg ? method.getArg(varIndex) : method.getVar(varIndex);
 
 						if (lvIndex != -1 && var.getLvIndex() != lvIndex) {
-							logger.warn("Mismatched lv index {} for method {}", lvIndex, method);
+							LOGGER.warn("Mismatched lv index {} for method {}", lvIndex, method);
 							return null;
 						}
 
 						if (asmIndex != -1 && var.getAsmIndex() != asmIndex) {
-							logger.warn("Mismatched lv asm index {} for method {}", asmIndex, method);
+							LOGGER.warn("Mismatched lv asm index {} for method {}", asmIndex, method);
 							return null;
 						}
 
@@ -189,7 +191,7 @@ public class Mappings {
 					cur = field = cls.getField(srcName, srcDesc, fieldSource.type);
 
 					if (field == null || !field.isReal()) {
-						logger.warn("Can't find mapped field {}/{}", cls.getName(fieldSource.type), srcName);
+						LOGGER.warn("Can't find mapped field {}/{}", cls.getName(fieldSource.type), srcName);
 						return false;
 					}
 
@@ -225,10 +227,10 @@ public class Mappings {
 
 							break;
 						case UID:
-							String prefix = env.getGlobal().classUidPrefix;
+							String prefix = ClassEnvironment.CLASS_UID_PREFIX;
 
 							if (!name.startsWith(prefix)) {
-								logger.warn("Invalid uid class name {}", name);
+								LOGGER.warn("Invalid uid class name {}", name);
 								return;
 							} else {
 								int innerNameStart = name.lastIndexOf('$') + 1;
@@ -238,7 +240,7 @@ public class Mappings {
 									int subPrefixStart = prefix.lastIndexOf('/') + 1;
 
 									if (!name.startsWith(prefix.substring(subPrefixStart), innerNameStart)) {
-										logger.warn("Invalid uid class name {}", name);
+										LOGGER.warn("Invalid uid class name {}", name);
 										return;
 									} else {
 										uidStr = name.substring(innerNameStart + prefix.length() - subPrefixStart);
@@ -250,7 +252,7 @@ public class Mappings {
 								int uid = Integer.parseInt(uidStr);
 
 								if (uid < 0) {
-									logger.warn("Invalid class uid {}", uid);
+									LOGGER.warn("Invalid class uid {}", uid);
 									return;
 								} else if (cls.getUid() < 0 || cls.getUid() > uid || replace) {
 									cls.setUid(uid);
@@ -283,16 +285,16 @@ public class Mappings {
 
 							break;
 						case UID:
-							String prefix = env.getGlobal().fieldUidPrefix;
+							String prefix = ClassEnvironment.FIELD_UID_PREFIX;
 
 							if (!name.startsWith(prefix)) {
-								logger.warn("Invalid uid field name {}", name);
+								LOGGER.warn("Invalid uid field name {}", name);
 								return;
 							} else {
 								int uid = Integer.parseInt(name.substring(prefix.length()));
 
 								if (uid < 0) {
-									logger.warn("Invalid field uid {}", uid);
+									LOGGER.warn("Invalid field uid {}", uid);
 									return;
 								} else if (field.getUid() < 0 || field.getUid() > uid || replace) {
 									for (FieldInstance f : field.getAllHierarchyMembers()) {
@@ -327,16 +329,16 @@ public class Mappings {
 
 							break;
 						case UID:
-							String prefix = env.getGlobal().methodUidPrefix;
+							String prefix = ClassEnvironment.METHOD_UID_PREFIX;
 
 							if (!name.startsWith(prefix)) {
-								logger.warn("Invalid uid method name {}", name);
+								LOGGER.warn("Invalid uid method name {}", name);
 								return;
 							} else {
 								int uid = Integer.parseInt(name.substring(prefix.length()));
 
 								if (uid < 0) {
-									logger.warn("Invalid method uid {}", uid);
+									LOGGER.warn("Invalid method uid {}", uid);
 									return;
 								} else if (method.getUid() < 0 || method.getUid() > uid || replace) {
 									for (MethodInstance m : method.getAllHierarchyMembers()) {
@@ -413,15 +415,16 @@ public class Mappings {
 			throw t;
 		}
 
-		logger.info("Loaded mappings for {} classes, {} methods ({} args, {} vars) and {} fields (comments: {}/{}/{}).",
-				dstNameCounts[MatchableKind.CLASS.ordinal()],
-				dstNameCounts[MatchableKind.METHOD.ordinal()],
-				dstNameCounts[MatchableKind.METHOD_ARG.ordinal()],
-				dstNameCounts[MatchableKind.METHOD_VAR.ordinal()],
-				dstNameCounts[MatchableKind.FIELD.ordinal()],
-				commentCounts[MatchableKind.CLASS.ordinal()],
-				commentCounts[MatchableKind.METHOD.ordinal()],
-				commentCounts[MatchableKind.FIELD.ordinal()]);
+		LOGGER.atInfo()
+				.addArgument(() -> dstNameCounts[MatchableKind.CLASS.ordinal()])
+				.addArgument(() -> dstNameCounts[MatchableKind.METHOD.ordinal()])
+				.addArgument(() -> dstNameCounts[MatchableKind.METHOD_ARG.ordinal()])
+				.addArgument(() -> dstNameCounts[MatchableKind.METHOD_VAR.ordinal()])
+				.addArgument(() -> dstNameCounts[MatchableKind.FIELD.ordinal()])
+				.addArgument(() -> commentCounts[MatchableKind.CLASS.ordinal()])
+				.addArgument(() -> commentCounts[MatchableKind.METHOD.ordinal()])
+				.addArgument(() -> commentCounts[MatchableKind.FIELD.ordinal()])
+				.log("Loaded mappings for {} classes, {} methods ({} args, {} vars) and {} fields (comments: {}/{}/{}).");
 	}
 
 	private static ClassInstance findClass(String name, MappingField type, LocalClassEnv env) {
@@ -465,7 +468,7 @@ public class Mappings {
 	public static boolean save(Path file, MappingFormat format, LocalClassEnv env,
 			List<NameType> nsTypes, List<String> nsNames,
 			MappingsExportVerbosity verbosity, boolean forAnyInput, boolean fieldsFirst) throws IOException {
-		if (nsTypes.size() < 2 || nsTypes.size() > 2 && !format.hasNamespaces) throw new IllegalArgumentException("invalid namespace count");
+		if (nsTypes.size() < 2 || nsTypes.size() > 2 && !format.features().hasNamespaces()) throw new IllegalArgumentException("invalid namespace count");
 		if (nsNames != null && nsNames.size() != nsTypes.size()) throw new IllegalArgumentException("namespace types and names don't have the same number of entries");
 
 		if (nsNames == null) {
@@ -530,7 +533,7 @@ public class Mappings {
 			}
 
 			if (!hasAnyDstName
-					&& (!format.supportsComments || cls.getMappedComment() == null)
+					&& (!supportsElementComments(format) || cls.getMappedComment() == null)
 					&& !shouldExportAny(cls.getMethods(), format, nsTypes, verbosity, forAnyInput, exportedHierarchies)
 					&& !shouldExportAny(cls.getFields(), format, nsTypes)) {
 				continue; // no data for the class, skip
@@ -564,6 +567,10 @@ public class Mappings {
 
 		writer.visitEnd();
 		return true;
+	}
+
+	private static boolean supportsElementComments(MappingFormat format) {
+		return format.features().elementComments() != ElementCommentSupport.NONE;
 	}
 
 	private static void exportMethods(ClassInstance cls, String srcClsName, String[] dstClassNames,
@@ -613,23 +620,23 @@ public class Mappings {
 				continue;
 			}
 
-			if (format.supportsComments) {
+			if (supportsElementComments(format)) {
 				String comment = m.getMappedComment();
 				if (comment != null) writer.visitMethodComment(srcClsName, srcName, desc, dstClassNames, dstMethodNames, dstMemberDescs, comment);
 			}
 
 			// method args, vars
 
-			if (format.supportsArgs || format.supportsLocals) {
+			if (format.features().supportsArgs() || format.features().supportsVars()) {
 				for (int k = 0; k < 2; k++) {
 					boolean isArg = k == 0;
 					MethodVarInstance[] instances;
 
 					if (isArg) { // arg
-						if (!format.supportsArgs) continue;
+						if (!format.features().supportsArgs()) continue;
 						instances = m.getArgs();
 					} else { // var
-						if (!format.supportsLocals) continue;
+						if (!format.features().supportsVars()) continue;
 						instances = m.getVars();
 					}
 
@@ -668,7 +675,7 @@ public class Mappings {
 							}
 						}
 
-						if (format.supportsComments) {
+						if (supportsElementComments(format)) {
 							String comment = var.getMappedComment();
 
 							if (comment != null) {
@@ -730,7 +737,7 @@ public class Mappings {
 				continue;
 			}
 
-			if (format.supportsComments) {
+			if (supportsElementComments(format)) {
 				String comment = f.getMappedComment();
 				if (comment != null) writer.visitFieldComment(srcClsName, srcName, desc, dstClassNames, dstMemberNames, dstMemberDescs, comment);
 			}
@@ -770,23 +777,23 @@ public class Mappings {
 		String srcName = method.getName(nsTypes.get(0));
 		if (srcName == null) return false;
 
-		return format.supportsComments && method.getMappedComment() != null
-				|| format.supportsArgs && shouldExportAny(method.getArgs(), format, nsTypes)
-				|| format.supportsLocals && shouldExportAny(method.getVars(), format, nsTypes)
+		return supportsElementComments(format) && method.getMappedComment() != null
+				|| format.features().supportsArgs() && shouldExportAny(method.getArgs(), format, nsTypes)
+				|| format.features().supportsVars() && shouldExportAny(method.getVars(), format, nsTypes)
 				|| hasAnyNames(method, srcName, nsTypes) && shouldExportName(method, verbosity, forAnyInput, exportedHierarchies);
 	}
 
 	private static boolean shouldExport(MethodVarInstance var, MappingFormat format, List<NameType> nsTypes) {
 		String srcName = var.getName(nsTypes.get(0));
 
-		return format.supportsComments && var.getMappedComment() != null || hasAnyNames(var, srcName, nsTypes);
+		return supportsElementComments(format) && var.getMappedComment() != null || hasAnyNames(var, srcName, nsTypes);
 	}
 
 	private static boolean shouldExport(FieldInstance field, MappingFormat format, List<NameType> nsTypes) {
 		String srcName = field.getName(nsTypes.get(0));
 
 		return srcName != null
-				&& (format.supportsComments && field.getMappedComment() != null || hasAnyNames(field, srcName, nsTypes));
+				&& (supportsElementComments(format) && field.getMappedComment() != null || hasAnyNames(field, srcName, nsTypes));
 	}
 
 	private static boolean hasAnyNames(Matchable<?> m, String srcName, List<NameType> nsTypes) {
@@ -859,8 +866,11 @@ public class Mappings {
 		}
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(Mappings.class);
-	public static final String metaUidNextClass = "uid-next-class";
-	public static final String metaUidNextMethod = "uid-next-method";
-	public static final String metaUidNextField = "uid-next-field";
+	private Mappings() {
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Mappings.class);
+	public static final String META_UID_NEXT_CLASS = "uid-next-class";
+	public static final String META_UID_NEXT_METHOD = "uid-next-method";
+	public static final String META_UID_NEXT_FIELD = "uid-next-field";
 }

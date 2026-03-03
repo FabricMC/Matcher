@@ -32,10 +32,10 @@ public class BytecodeTab extends WebViewTab {
 
 		if (updateNeeded > 0) update();
 
-		if (selectedMember instanceof MethodInstance) {
-			onMethodSelect((MethodInstance) selectedMember);
-		} else if (selectedMember instanceof FieldInstance) {
-			onFieldSelect((FieldInstance) selectedMember);
+		if (selectedMember instanceof MethodInstance mth) {
+			onMethodSelect(mth);
+		} else if (selectedMember instanceof FieldInstance fld) {
+			onFieldSelect(fld);
 		}
 	}
 

@@ -1,3 +1,4 @@
+@SuppressWarnings("requires-transitive-automatic")
 module matcher.cli {
 	requires transitive jcommander;
 	requires transitive matcher.core;

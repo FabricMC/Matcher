@@ -1,0 +1,161 @@
+plugins {
+	id 'org.openrewrite.rewrite'
+}
+
+rewrite {
+	failOnDryRunResults = true
+
+	activeRecipe(
+			"org.openrewrite.java.RemoveObjectsIsNull",
+			"org.openrewrite.java.RemoveUnusedImports",
+			// "org.openrewrite.java.logging.PrintStackTraceToLogError", // Breaks Util#getStackTrace, see https://github.com/openrewrite/rewrite-logging-frameworks/issues/281
+			"org.openrewrite.java.logging.SystemErrToLogging",
+			"org.openrewrite.java.logging.SystemOutToLogging",
+			"org.openrewrite.java.logging.slf4j.Slf4jBestPractices",
+			"org.openrewrite.staticanalysis.CompareEnumsWithEqualityOperator",
+			"org.openrewrite.staticanalysis.JavaApiBestPractices",
+			"org.openrewrite.staticanalysis.MissingOverrideAnnotation",
+			"org.openrewrite.staticanalysis.SimplifyConstantIfBranchExecution",
+			"org.openrewrite.staticanalysis.UseStandardCharset",
+			"org.openrewrite.java.recipes.BlankLinesAroundFieldsWithAnnotations",
+			"org.openrewrite.java.migrate.RemoveIllegalSemicolons",
+			"org.openrewrite.java.migrate.lang.IfElseIfConstructToSwitch",
+			"org.openrewrite.java.migrate.lang.StringRulesRecipes",
+			"org.openrewrite.java.migrate.lang.UseStringIsEmptyRecipe",
+			"org.openrewrite.java.migrate.util.JavaUtilAPIs",
+			"org.openrewrite.java.migrate.util.UseEnumSetOf",
+			"org.openrewrite.java.migrate.util.UseListOf",
+			"org.openrewrite.java.migrate.util.UseSetOf",
+			"org.openrewrite.java.format.NormalizeFormat",
+			"org.openrewrite.java.format.RemoveTrailingWhitespace",
+			"org.openrewrite.java.format.SingleLineComments",
+			// "org.openrewrite.java.format.Spaces", // Conflicts with Checkstyle config regarding { } vs {}
+
+			// TODO: https://docs.openrewrite.org/recipes/java/recipes/recipenullabilitybestpractices
+
+			/*
+			 * org.openrewrite.staticanalysis.CommonStaticAnalysis (modified), based on commit 69d43a5:
+			 * https://github.com/openrewrite/rewrite-static-analysis/blob/63586c0ffa2f8dd7150a6a1767b808532b2560a8/src/main/resources/META-INF/rewrite/common-static-analysis.yml
+			 */
+			"org.openrewrite.staticanalysis.AbstractClassPublicConstructor",
+			"org.openrewrite.staticanalysis.AtomicPrimitiveEqualsUsesGet",
+			"org.openrewrite.staticanalysis.BigDecimalDoubleConstructorRecipe",
+			"org.openrewrite.staticanalysis.BigDecimalRoundingConstantsToEnums",
+			"org.openrewrite.staticanalysis.BooleanChecksNotInverted",
+			"org.openrewrite.staticanalysis.CaseInsensitiveComparisonsDoNotChangeCase",
+			"org.openrewrite.staticanalysis.CatchClauseOnlyRethrows",
+			"org.openrewrite.staticanalysis.ChainStringBuilderAppendCalls",
+			"org.openrewrite.staticanalysis.CollectionToArrayShouldHaveProperType",
+			"org.openrewrite.staticanalysis.CovariantEquals",
+			"org.openrewrite.staticanalysis.DefaultComesLast",
+			"org.openrewrite.staticanalysis.EmptyBlock",
+			// "org.openrewrite.staticanalysis.EqualsAvoidsNull",
+			"org.openrewrite.staticanalysis.ExplicitInitialization",
+			"org.openrewrite.staticanalysis.ExternalizableHasNoArgsConstructor",
+			"org.openrewrite.staticanalysis.FinalizePrivateFields",
+			"org.openrewrite.staticanalysis.FinalClass",
+			"org.openrewrite.staticanalysis.FixStringFormatExpressions",
+			"org.openrewrite.staticanalysis.ForLoopIncrementInUpdate",
+			"org.openrewrite.staticanalysis.HideUtilityClassConstructor",
+			"org.openrewrite.staticanalysis.IndexOfChecksShouldUseAStartPosition",
+			"org.openrewrite.staticanalysis.IndexOfReplaceableByContains",
+			"org.openrewrite.staticanalysis.IndexOfShouldNotCompareGreaterThanZero",
+			"org.openrewrite.staticanalysis.InlineVariable",
+			"org.openrewrite.staticanalysis.IsEmptyCallOnCollections",
+			"org.openrewrite.staticanalysis.LambdaBlockToExpression",
+			"org.openrewrite.staticanalysis.LowercasePackage",
+			"org.openrewrite.staticanalysis.MethodNameCasing",
+			"org.openrewrite.staticanalysis.ModifierOrder",
+			// "org.openrewrite.staticanalysis.MultipleVariableDeclarations",
+			// "org.openrewrite.staticanalysis.NeedBraces",
+			"org.openrewrite.staticanalysis.NestedEnumsAreNotStatic",
+			"org.openrewrite.staticanalysis.NewStringBuilderBufferWithCharArgument",
+			"org.openrewrite.staticanalysis.NoDoubleBraceInitialization",
+			"org.openrewrite.staticanalysis.NoEmptyCollectionWithRawType",
+			"org.openrewrite.staticanalysis.NoEqualityInForCondition",
+			"org.openrewrite.staticanalysis.NoFinalizer",
+			"org.openrewrite.staticanalysis.NoPrimitiveWrappersForToStringOrCompareTo",
+			"org.openrewrite.staticanalysis.NoRedundantJumpStatements",
+			"org.openrewrite.staticanalysis.NoToStringOnStringType",
+			"org.openrewrite.staticanalysis.NoValueOfOnStringType",
+			"org.openrewrite.staticanalysis.ObjectFinalizeCallsSuper",
+			"org.openrewrite.staticanalysis.PreferSystemGetPropertyOverGetenv",
+			"org.openrewrite.staticanalysis.PrimitiveWrapperClassConstructorToValueOf",
+			"org.openrewrite.staticanalysis.RedundantFileCreation",
+			"org.openrewrite.staticanalysis.RemoveExtraSemicolons",
+			"org.openrewrite.staticanalysis.RemoveRedundantNullCheckBeforeInstanceof",
+			"org.openrewrite.staticanalysis.RemoveRedundantNullCheckBeforeLiteralEquals",
+			"org.openrewrite.staticanalysis.RemoveRedundantTypeCast",
+			// "org.openrewrite.staticanalysis.RemoveUnusedLocalVariables",
+			// "org.openrewrite.staticanalysis.RemoveUnusedPrivateMethods",
+			// "org.openrewrite.staticanalysis.RenameLocalVariablesToCamelCase",
+			"org.openrewrite.staticanalysis.RenameMethodsNamedHashcodeEqualOrToString",
+			// "org.openrewrite.staticanalysis.RenamePrivateFieldsToCamelCase", // Always generates empty diff for UidSetupPane.java
+			"org.openrewrite.staticanalysis.ReplaceClassIsInstanceWithInstanceof",
+			"org.openrewrite.staticanalysis.ReplaceLambdaWithMethodReference",
+			"org.openrewrite.staticanalysis.ReplaceStringBuilderWithString",
+			"org.openrewrite.staticanalysis.ReplaceStringConcatenationWithStringValueOf",
+			"org.openrewrite.staticanalysis.SimplifyArraysAsList",
+			"org.openrewrite.staticanalysis.SimplifyBooleanExpression",
+			// "org.openrewrite.staticanalysis.SimplifyBooleanReturn",
+			"org.openrewrite.staticanalysis.SimplifyTernaryRecipes",
+			"org.openrewrite.staticanalysis.StaticMethodNotFinal",
+			"org.openrewrite.staticanalysis.StringLiteralEquality",
+			"org.openrewrite.staticanalysis.UnnecessaryCloseInTryWithResources",
+			"org.openrewrite.staticanalysis.UnnecessaryExplicitTypeArguments",
+			"org.openrewrite.staticanalysis.UnnecessaryParentheses",
+			"org.openrewrite.staticanalysis.UnnecessaryPrimitiveAnnotations",
+			"org.openrewrite.staticanalysis.UnnecessaryReturnAsLastStatement",
+			// "org.openrewrite.staticanalysis.UnwrapElseAfterReturn",
+			"org.openrewrite.staticanalysis.UpperCaseLiteralSuffixes",
+			"org.openrewrite.staticanalysis.UnnecessaryThrows",
+			"org.openrewrite.staticanalysis.UseCollectionInterfaces",
+			"org.openrewrite.staticanalysis.UseDiamondOperator",
+			"org.openrewrite.staticanalysis.UseJavaStyleArrayDeclarations",
+			"org.openrewrite.staticanalysis.UsePortableNewlines",
+			"org.openrewrite.staticanalysis.UseLambdaForFunctionalInterface",
+			"org.openrewrite.staticanalysis.UseStringReplace",
+			"org.openrewrite.staticanalysis.WhileInsteadOfFor",
+			"org.openrewrite.staticanalysis.WriteOctalValuesAsDecimal",
+
+			/*
+			 * org.openrewrite.staticanalysis.CodeCleanup (modified), based on commit a32c4e3:
+			 * https://github.com/openrewrite/rewrite-static-analysis/blob/63586c0ffa2f8dd7150a6a1767b808532b2560a8/src/main/resources/META-INF/rewrite/static-analysis.yml
+			 */
+			"org.openrewrite.staticanalysis.DefaultComesLast",
+			"org.openrewrite.staticanalysis.EmptyBlock",
+			"org.openrewrite.java.format.EmptyNewlineAtEndOfFile",
+			"org.openrewrite.staticanalysis.ForLoopControlVariablePostfixOperators",
+			"org.openrewrite.staticanalysis.FinalizePrivateFields",
+			"org.openrewrite.java.format.MethodParamPad",
+			"org.openrewrite.java.format.NoWhitespaceAfter",
+			"org.openrewrite.java.format.NoWhitespaceBefore",
+			"org.openrewrite.java.format.PadEmptyForLoopComponents",
+			"org.openrewrite.staticanalysis.TypecastParenPad",
+			// "org.openrewrite.staticanalysis.EqualsAvoidsNull",
+			"org.openrewrite.staticanalysis.ExplicitInitialization",
+			// "org.openrewrite.staticanalysis.FallThrough",
+			"org.openrewrite.staticanalysis.HideUtilityClassConstructor",
+			// "org.openrewrite.staticanalysis.NeedBraces",
+			"org.openrewrite.staticanalysis.OperatorWrap",
+			"org.openrewrite.staticanalysis.UnnecessaryParentheses",
+			"org.openrewrite.staticanalysis.ReplaceThreadRunWithThreadStart",
+			"org.openrewrite.staticanalysis.ChainStringBuilderAppendCalls",
+			"org.openrewrite.staticanalysis.ReplaceStringBuilderWithString",
+			"org.openrewrite.java.ShortenFullyQualifiedTypeReferences",
+			"org.openrewrite.java.SimplifySingleElementAnnotation",
+			// "org.openrewrite.java.OrderImports",
+	)
+}
+
+dependencies {
+	rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.25.0"))
+	rewrite("org.openrewrite.recipe:rewrite-migrate-java")
+	rewrite("org.openrewrite.recipe:rewrite-static-analysis")
+	rewrite("org.openrewrite.recipe:rewrite-logging-frameworks")
+	rewrite("org.openrewrite.recipe:rewrite-rewrite")
+}
+
+tasks.named("check").configure {
+	dependsOn(tasks.named("rewriteDryRun"))
+}

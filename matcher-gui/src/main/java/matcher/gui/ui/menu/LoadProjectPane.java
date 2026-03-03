@@ -27,7 +27,7 @@ import matcher.gui.ui.GuiUtil;
 
 public class LoadProjectPane extends VBox {
 	LoadProjectPane(List<Path> paths, boolean verifyFiles, Window window, Node okButton) {
-		super(GuiConstants.padding);
+		super(GuiConstants.PADDING);
 
 		this.paths = FXCollections.observableArrayList(paths);
 		this.verifyFiles = verifyFiles;
@@ -48,7 +48,7 @@ public class LoadProjectPane extends VBox {
 		list.setPrefHeight(200);
 		VBox.setVgrow(list, Priority.ALWAYS);
 
-		HBox footer = new HBox(GuiConstants.padding);
+		HBox footer = new HBox(GuiConstants.PADDING);
 		getChildren().add(footer);
 
 		footer.setAlignment(Pos.CENTER_RIGHT);
@@ -75,9 +75,8 @@ public class LoadProjectPane extends VBox {
 		footer.getChildren().add(downButton);
 		downButton.setOnAction(event -> GuiUtil.moveSelectionDown(list));
 
-		ListChangeListener<Path> itemChangeListener = change -> {
-			okButton.setDisable(paths.isEmpty());
-		};
+		ListChangeListener<Path> itemChangeListener = change ->
+				okButton.setDisable(paths.isEmpty());
 
 		list.getItems().addListener(itemChangeListener);
 
@@ -104,15 +103,7 @@ public class LoadProjectPane extends VBox {
 		return new ProjectLoadSettings(new ArrayList<>(paths), verifyFilesBox.isSelected());
 	}
 
-	public static class ProjectLoadSettings {
-		public ProjectLoadSettings(List<Path> paths, boolean verifyFiles) {
-			this.paths = paths;
-			this.verifyFiles = verifyFiles;
-		}
-
-		public final List<Path> paths;
-		public final boolean verifyFiles;
-	}
+	public record ProjectLoadSettings(List<Path> paths, boolean verifyFiles) { }
 
 	private final ObservableList<Path> paths;
 	private final boolean verifyFiles;

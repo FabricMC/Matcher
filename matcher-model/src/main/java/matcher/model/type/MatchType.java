@@ -1,5 +1,5 @@
 package matcher.model.type;
 
 public enum MatchType {
-	Class, Method, Field, MethodVar;
+	Class, Method, Field, MethodVar
 }

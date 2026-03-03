@@ -23,8 +23,8 @@ class LoadMappingsPane extends GridPane {
 	}
 
 	private void init(List<String> namespaces) {
-		setHgap(GuiConstants.padding);
-		setVgap(GuiConstants.padding);
+		setHgap(GuiConstants.PADDING);
+		setVgap(GuiConstants.PADDING);
 
 		add(new Label("Namespace"), 1, 0);
 		add(new Label("Field"), 2, 0);

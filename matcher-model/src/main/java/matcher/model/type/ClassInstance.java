@@ -121,7 +121,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 			return ret.toString();
 		} else if (type == NameType.UID_PLAIN) {
 			int uid = getUid();
-			if (uid >= 0) return env.getGlobal().classUidPrefix+uid;
+			if (uid >= 0) return ClassEnvironment.CLASS_UID_PREFIX +uid;
 		}
 
 		boolean locTmp = type == NameType.MAPPED_LOCTMP_PLAIN || type == NameType.LOCTMP_PLAIN;
@@ -226,7 +226,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 			case 'S': ret = "short"; break;
 			case 'V': ret = "void"; break;
 			case 'Z': ret = "boolean"; break;
-			default: throw new IllegalStateException("invalid class desc: "+id);
+			default: throw new IllegalStateException("invalid class desc: " + id);
 			}
 		} else {
 			ret = getName(type).replace('/', '.');
@@ -249,9 +249,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 				sb.append(ret, dims + 1, ret.length() - 1);
 			}
 
-			for (int i = 0; i < dims; i++) {
-				sb.append("[]");
-			}
+			sb.append("[]".repeat(dims));
 
 			ret = sb.toString();
 		}
@@ -417,7 +415,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 	public int getSlotSize() {
 		char start = id.charAt(0);
 
-		return (start == 'D' || start == 'J') ? 2 : 1;
+		return start == 'D' || start == 'J' ? 2 : 1;
 	}
 
 	public boolean isArray() {
@@ -431,7 +429,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 			if (id.charAt(i) != '[') return i;
 		}
 
-		throw new IllegalStateException("invalid id: "+id);
+		throw new IllegalStateException("invalid id: " + id);
 	}
 
 	public ClassInstance[] getArrays() {
@@ -730,14 +728,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		// non-abstract methods take precedence over non-abstract methods, remove all abstract ones if there's at least 1 non-abstract
 
 		if (foundNonAbstract) {
-			for (Iterator<MethodInstance> it = matches.iterator(); it.hasNext(); ) {
-				MethodInstance m = it.next();
-
-				if (!m.isReal() || (m.access & Opcodes.ACC_ABSTRACT) != 0) {
-					it.remove();
-				}
-			}
-
+			matches.removeIf(m -> !m.isReal() || (m.access & Opcodes.ACC_ABSTRACT) != 0);
 			assert !matches.isEmpty();
 			if (matches.size() == 1) return matches.iterator().next();
 		}
@@ -779,8 +770,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		if (ret != null) return ret;
 
 		if (!interfaces.isEmpty()) {
-			Deque<ClassInstance> queue = new ArrayDeque<>();
-			queue.addAll(interfaces);
+			Deque<ClassInstance> queue = new ArrayDeque<>(interfaces);
 			ClassInstance cls;
 
 			while ((cls = queue.pollFirst()) != null) {
@@ -1052,7 +1042,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 			}
 
 			if (!ret.isEmpty()) {
-				if (ret.size() >= 1) {
+				if (ret.size() > 1) {
 					for (Iterator<ClassInstance> it = ret.iterator(); it.hasNext(); ) {
 						cls = it.next();
 
@@ -1076,9 +1066,9 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 
 	public void accept(ClassVisitor visitor, NameType nameType) {
 		ClassNode cn = getMergedAsmNode();
-		if (cn == null) throw new IllegalArgumentException("cls without asm node: "+this);
+		if (cn == null) throw new IllegalArgumentException("cls without asm node: " + this);
 
-		synchronized (Util.asmNodeSync) {
+		synchronized (Util.ASM_NODE_SYNC) {
 			if (nameType != NameType.PLAIN) {
 				AsmClassRemapper.process(cn, new AsmRemapper(env, nameType), visitor);
 			} else {
@@ -1103,7 +1093,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		if (method == null) throw new NullPointerException("null method");
 
 		MethodInstance prev = methodIdx.putIfAbsent(method.id, method);
-		if (prev != null) throw new IllegalStateException("duplicate method "+method.id);
+		if (prev != null) throw new IllegalStateException("duplicate method " + method.id);
 
 		methods = Arrays.copyOf(methods, methods.length + 1);
 		methods[methods.length - 1] = method;
@@ -1113,7 +1103,7 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		if (field == null) throw new NullPointerException("null field");
 
 		FieldInstance prev = fieldIdx.putIfAbsent(field.id, field);
-		if (prev != null) throw new IllegalStateException("duplicate field "+field.id);
+		if (prev != null) throw new IllegalStateException("duplicate field " + field.id);
 
 		fields = Arrays.copyOf(fields, fields.length + 1);
 		fields[fields.length - 1] = field;
@@ -1172,11 +1162,11 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 		return name.substring(name.lastIndexOf('/') + 1);
 	}
 
-	public static final Comparator<ClassInstance> nameComparator = Comparator.comparing(ClassInstance::getName);
+	public static final Comparator<ClassInstance> NAME_COMPARATOR = Comparator.comparing(ClassInstance::getName);
 
-	private static final ClassInstance[] noArrays = new ClassInstance[0];
-	private static final MethodInstance[] noMethods = new MethodInstance[0];
-	private static final FieldInstance[] noFields = new FieldInstance[0];
+	private static final ClassInstance[] NO_ARRAYS = new ClassInstance[0];
+	private static final MethodInstance[] NO_METHODS = new MethodInstance[0];
+	private static final FieldInstance[] NO_FIELDS = new FieldInstance[0];
 
 	final String id;
 	private final URI origin;
@@ -1188,12 +1178,12 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 	final ClassInstance elementClass; // 0-dim class TODO: improve handling of array classes (references etc.)
 	private ClassSignature signature;
 
-	MethodInstance[] methods = noMethods;
-	FieldInstance[] fields = noFields;
+	MethodInstance[] methods = NO_METHODS;
+	FieldInstance[] fields = NO_FIELDS;
 	final Map<String, MethodInstance> methodIdx = new HashMap<>();
 	final Map<String, FieldInstance> fieldIdx = new HashMap<>();
 
-	private ClassInstance[] arrays = noArrays;
+	private ClassInstance[] arrays = NO_ARRAYS;
 
 	ClassInstance outerClass;
 	final Set<ClassInstance> innerClasses = Util.newIdentityHashSet();

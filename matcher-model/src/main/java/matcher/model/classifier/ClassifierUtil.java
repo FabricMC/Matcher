@@ -50,7 +50,7 @@ import matcher.model.type.MethodInstance;
 import matcher.model.type.MethodType;
 import matcher.model.type.MethodVarInstance;
 
-public class ClassifierUtil {
+public final class ClassifierUtil {
 	public static boolean checkPotentialEquality(ClassInstance a, ClassInstance b) {
 		if (a == b) return true;
 		if (a.getMatch() != null) return a.getMatch() == b;
@@ -93,8 +93,8 @@ public class ClassifierUtil {
 		if (!checkNameObfMatch(a, b)) return false;
 		if ((a.getId().startsWith("<") || b.getId().startsWith("<")) && !a.getName().equals(b.getName())) return false; // require <clinit> and <init> to match
 
-		//MethodInstance hierarchyMatch = a.getHierarchyMatch();
-		//if (hierarchyMatch != null && !hierarchyMatch.getAllHierarchyMembers().contains(b)) return false;
+		// MethodInstance hierarchyMatch = a.getHierarchyMatch();
+		// if (hierarchyMatch != null && !hierarchyMatch.getAllHierarchyMembers().contains(b)) return false;
 		if ((a.hasHierarchyMatch() || b.hasHierarchyMatch()) && !a.hasMatchedHierarchy(b)) return false;
 
 		if (a.getType() == MethodType.LAMBDA_IMPL && b.getType() == MethodType.LAMBDA_IMPL) { // require same "outer method" for lambdas
@@ -290,11 +290,11 @@ public class ClassifierUtil {
 		InsnList ilA = a.getAsmNode().instructions;
 		InsnList ilB = b.getAsmNode().instructions;
 
-		return compareLists(ilA, ilB, InsnList::get, InsnList::size, (inA, inB) -> compareInsns(inA, inB, ilA, ilB, (list, item) -> list.indexOf(item), a, b, a.getEnv().getGlobal()));
+		return compareLists(ilA, ilB, InsnList::get, InsnList::size, (inA, inB) -> compareInsns(inA, inB, ilA, ilB, InsnList::indexOf, a, b, a.getEnv().getGlobal()));
 	}
 
 	public static double compareInsns(List<AbstractInsnNode> listA, List<AbstractInsnNode> listB, ClassEnvironment env) {
-		return compareLists(listA, listB, List::get, List::size, (inA, inB) -> compareInsns(inA, inB, listA, listB, (list, item) -> list.indexOf(item), null, null, env));
+		return compareLists(listA, listB, List::get, List::size, (inA, inB) -> compareInsns(inA, inB, listA, listB, List::indexOf, null, null, env));
 	}
 
 	private static <T> int compareInsns(AbstractInsnNode insnA, AbstractInsnNode insnB, T listA, T listB, ToIntBiFunction<T, AbstractInsnNode> posProvider,
@@ -379,10 +379,10 @@ public class ClassifierUtil {
 							implB.getOwner(), implB.getName(), implB.getDesc(), Util.isCallToInterface(implB),
 							env) ? COMPARED_SIMILAR : COMPARED_DISTINCT;
 				default:
-					logger.warn("Unexpected impl tag: {}", implA.getTag());
+					LOGGER.warn("Unexpected impl tag: {}", implA.getTag());
 				}
 			} else if (!Util.isIrrelevantBsm(a.bsm)) {
-				logger.warn("Unknown invokedynamic bsm: {}/{}{} (tag={} iif={})",
+				LOGGER.warn("Unknown invokedynamic bsm: {}/{}{} (tag={} iif={})",
 						a.bsm.getOwner(), a.bsm.getName(), a.bsm.getDesc(), a.bsm.getTag(), a.bsm.isInterface());
 			}
 
@@ -539,9 +539,7 @@ public class ClassifierUtil {
 				v1[j + 1] = Math.min(Math.min(v1[j] + COMPARED_DISTINCT, v0[j + 1] + COMPARED_DISTINCT), v0[j] + cost);
 			}
 
-			for (int j = 0; j < v0.length; j++) {
-				v0[j] = v1[j];
-			}
+			System.arraycopy(v1, 0, v0, 0, v0.length);
 		}
 
 		int distance = v1[sizeB];
@@ -560,12 +558,12 @@ public class ClassifierUtil {
 		if (ilA.size() * ilB.size() < 1000) {
 			return mapInsns(ilA, ilB, a, b, a.getEnv().getGlobal());
 		} else {
-			return a.getEnv().getGlobal().getCache().compute(ilMapCacheToken, a, b, (mA, mB) -> mapInsns(mA.getAsmNode().instructions, mB.getAsmNode().instructions, mA, mB, mA.getEnv().getGlobal()));
+			return a.getEnv().getGlobal().getCache().compute(IL_MAP_CACHE_TOKEN, a, b, (mA, mB) -> mapInsns(mA.getAsmNode().instructions, mB.getAsmNode().instructions, mA, mB, mA.getEnv().getGlobal()));
 		}
 	}
 
 	public static int[] mapInsns(InsnList listA, InsnList listB, MethodInstance mthA, MethodInstance mthB, ClassEnvironment env) {
-		return mapLists(listA, listB, InsnList::get, InsnList::size, (inA, inB) -> compareInsns(inA, inB, listA, listB, (list, item) -> list.indexOf(item), mthA, mthB, env));
+		return mapLists(listA, listB, InsnList::get, InsnList::size, (inA, inB) -> compareInsns(inA, inB, listA, listB, InsnList::indexOf, mthA, mthB, env));
 	}
 
 	private static <T, U> int[] mapLists(T listA, T listB, ListElementRetriever<T, U> elementRetriever, ListSizeRetriever<T> sizeRetriever, ElementComparator<U> elementComparator) {
@@ -625,15 +623,15 @@ public class ClassifierUtil {
 
 		/*for (int j = 0; j <= sizeB; j++) {
 			for (int i = 0; i <= sizeA; i++) {
-				logger.debug("%2d ", v[i + j * size]);
+				LOGGER.debug("%2d ", v[i + j * size]);
 			}
 
-			logger.debug("");
+			LOGGER.debug("");
 		}*/
 
 		int i = sizeA;
 		int j = sizeB;
-		//boolean valid = true;
+		// boolean valid = true;
 
 		while (i > 0 || j > 0) {
 			int c = v[i + j * size];
@@ -644,10 +642,10 @@ public class ClassifierUtil {
 			if (keepCost <= delCost && keepCost <= insCost) {
 				if (c - keepCost >= COMPARED_DISTINCT) {
 					assert c - keepCost == COMPARED_DISTINCT;
-					//logger.debug("{}/{} rep {} -> {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)), toString(elementRetriever.apply(listB, j - 1)));
+					// LOGGER.debug("{}/{} rep {} -> {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)), toString(elementRetriever.apply(listB, j - 1)));
 					ret[i - 1] = -1;
 				} else {
-					//logger.debug("{}/{} eq {} - {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)), toString(elementRetriever.apply(listB, j - 1)));
+					// LOGGER.debug("{}/{} eq {} - {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)), toString(elementRetriever.apply(listB, j - 1)));
 					ret[i - 1] = j - 1;
 
 					/*U e = elementRetriever.apply(listA, i - 1);
@@ -661,11 +659,11 @@ public class ClassifierUtil {
 				i--;
 				j--;
 			} else if (delCost < insCost) {
-				//logger.debug("{}/{} del {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)));
+				// LOGGER.debug("{}/{} del {}", i-1, j-1, toString(elementRetriever.apply(listA, i - 1)));
 				ret[i - 1] = -1;
 				i--;
 			} else {
-				//logger.debug("{}/{} ins {}", i-1, j-1, toString(elementRetriever.apply(listB, j - 1)));
+				// LOGGER.debug("{}/{} ins {}", i-1, j-1, toString(elementRetriever.apply(listB, j - 1)));
 				j--;
 			}
 		}
@@ -739,7 +737,7 @@ public class ClassifierUtil {
 
 		for (IClassifier<T> classifier : classifiers) {
 			double cScore = classifier.getScore(src, dst, env);
-			assert cScore > -epsilon && cScore < 1 + epsilon : "invalid score from "+classifier.getName()+": "+cScore;
+			assert cScore > -EPSILON && cScore < 1 + EPSILON : "invalid score from "+classifier.getName()+": "+cScore;
 
 			double weight = classifier.getWeight();
 			double weightedScore = cScore * weight;
@@ -802,9 +800,7 @@ public class ClassifierUtil {
 	}
 
 	public static void extractNumbers(MethodNode node, Set<Integer> ints, Set<Long> longs, Set<Float> floats, Set<Double> doubles) {
-		for (Iterator<AbstractInsnNode> it = node.instructions.iterator(); it.hasNext(); ) {
-			AbstractInsnNode aInsn = it.next();
-
+		for (AbstractInsnNode aInsn : node.instructions) {
 			if (aInsn instanceof LdcInsnNode) {
 				LdcInsnNode insn = (LdcInsnNode) aInsn;
 
@@ -896,8 +892,10 @@ public class ClassifierUtil {
 		return (double) position / (size - 1);
 	}
 
-	private static final double epsilon = 1e-6;
+	private ClassifierUtil() {
+	}
 
-	private static final Logger logger = LoggerFactory.getLogger(ClassifierUtil.class);
-	private static final CacheToken<int[]> ilMapCacheToken = new CacheToken<>();
+	private static final double EPSILON = 1e-6;
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassifierUtil.class);
+	private static final CacheToken<int[]> IL_MAP_CACHE_TOKEN = new CacheToken<>();
 }

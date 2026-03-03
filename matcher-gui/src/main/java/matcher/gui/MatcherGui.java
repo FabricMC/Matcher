@@ -2,6 +2,7 @@ package matcher.gui;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -41,6 +43,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.fabricmc.mappingio.MappingReader;
 
@@ -102,7 +106,7 @@ public class MatcherGui extends Application {
 		scene = new Scene(border, 1400, 800);
 		Shortcuts.init(this);
 
-		for (Consumer<MatcherGui> l : loadListeners) {
+		for (Consumer<MatcherGui> l : LOAD_LISTENERS) {
 			l.accept(this);
 		}
 
@@ -117,8 +121,8 @@ public class MatcherGui extends Application {
 	}
 
 	@Override
-	public void stop() throws Exception {
-		threadPool.shutdown();
+	public void stop() {
+		THREAD_POOL.shutdown();
 	}
 
 	private void handleStartupArgs(List<String> args) {
@@ -142,35 +146,35 @@ public class MatcherGui extends Application {
 			// ProjectConfig args
 
 			case "--inputs-a":
-				while (i+1 < args.size() && !args.get(i+1).startsWith("--")) {
+				while (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
 					inputsA.add(Path.of(args.get(++i)));
 					validProjectConfigArgPresent = true;
 				}
 
 				break;
 			case "--inputs-b":
-				while (i+1 < args.size() && !args.get(i+1).startsWith("--")) {
+				while (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
 					inputsB.add(Path.of(args.get(++i)));
 					validProjectConfigArgPresent = true;
 				}
 
 				break;
 			case "--classpath-a":
-				while (i+1 < args.size() && !args.get(i+1).startsWith("--")) {
+				while (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
 					classPathA.add(Path.of(args.get(++i)));
 					validProjectConfigArgPresent = true;
 				}
 
 				break;
 			case "--classpath-b":
-				while (i+1 < args.size() && !args.get(i+1).startsWith("--")) {
+				while (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
 					classPathB.add(Path.of(args.get(++i)));
 					validProjectConfigArgPresent = true;
 				}
 
 				break;
 			case "--shared-classpath":
-				while (i+1 < args.size() && !args.get(i+1).startsWith("--")) {
+				while (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
 					sharedClassPath.add(Path.of(args.get(++i)));
 					validProjectConfigArgPresent = true;
 				}
@@ -241,7 +245,7 @@ public class MatcherGui extends Application {
 
 		if (showConfigDialog) {
 			Dialog<ProjectConfig> dialog = new Dialog<>();
-			//dialog.initModality(Modality.APPLICATION_MODAL);
+			// dialog.initModality(Modality.APPLICATION_MODAL);
 			dialog.setResizable(true);
 			dialog.setTitle("Project configuration");
 			dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -282,7 +286,7 @@ public class MatcherGui extends Application {
 									MappingField.PLAIN, MappingField.MAPPED,
 									env.getEnvA(), true);
 						} catch (IOException e) {
-							e.printStackTrace();
+							throw new UncheckedIOException("Failed to load mappings for side A", e);
 						}
 					}
 
@@ -296,14 +300,15 @@ public class MatcherGui extends Application {
 									MappingField.PLAIN, MappingField.MAPPED,
 									env.getEnvB(), true);
 						} catch (IOException e) {
-							e.printStackTrace();
+							throw new UncheckedIOException("Failed to load mappings for side B", e);
 						}
 					}
 
 					onProjectChange();
 				},
 				exc -> {
-					exc.printStackTrace();
+					LOGGER.error("Failed to initialize project", exc);
+					showAlert(AlertType.ERROR, "Project initialization error", "An error occurred while initializing the project", exc.getMessage());
 					ret.completeExceptionally(exc);
 				});
 
@@ -487,20 +492,20 @@ public class MatcherGui extends Application {
 	}
 
 	public static <T> CompletableFuture<T> runAsyncTask(Callable<T> task) {
-		Task<T> jfxTask = new Task<T>() {
+		Task<T> jfxTask = new Task<>() {
 			@Override
 			protected T call() throws Exception {
 				return task.call();
 			}
 		};
 
-		CompletableFuture<T> ret = new CompletableFuture<T>();
+		CompletableFuture<T> ret = new CompletableFuture<>();
 
 		jfxTask.setOnSucceeded(event -> ret.complete(jfxTask.getValue()));
 		jfxTask.setOnFailed(event -> ret.completeExceptionally(jfxTask.getException()));
 		jfxTask.setOnCancelled(event -> ret.cancel(false));
 
-		threadPool.execute(jfxTask);
+		THREAD_POOL.execute(jfxTask);
 
 		return ret;
 	}
@@ -512,15 +517,15 @@ public class MatcherGui extends Application {
 	public void runProgressTask(String labelText, Consumer<DoubleConsumer> task, Runnable onSuccess, Consumer<Throwable> onError) {
 		Stage stage = new Stage(StageStyle.UTILITY);
 		stage.initOwner(this.scene.getWindow());
-		VBox pane = new VBox(GuiConstants.padding);
+		VBox pane = new VBox(GuiConstants.PADDING);
 
 		stage.setScene(new Scene(pane));
 		stage.initModality(Modality.APPLICATION_MODAL);
-		stage.setOnCloseRequest(event -> event.consume());
+		stage.setOnCloseRequest(Event::consume);
 		stage.setResizable(false);
 		stage.setTitle("Operation progress");
 
-		pane.setPadding(new Insets(GuiConstants.padding));
+		pane.setPadding(new Insets(GuiConstants.PADDING));
 
 		pane.getChildren().add(new Label(labelText));
 
@@ -530,9 +535,9 @@ public class MatcherGui extends Application {
 
 		stage.show();
 
-		Task<Void> jfxTask = new Task<Void>() {
+		Task<Void> jfxTask = new Task<>() {
 			@Override
-			protected Void call() throws Exception {
+			protected Void call() {
 				task.accept(cProgress -> Platform.runLater(() -> progress.setProgress(cProgress)));
 
 				return null;
@@ -549,7 +554,7 @@ public class MatcherGui extends Application {
 			if (onError != null) onError.accept(jfxTask.getException());
 		});
 
-		threadPool.execute(jfxTask);
+		THREAD_POOL.execute(jfxTask);
 	}
 
 	public void showAlert(AlertType type, String title, String headerText, String text) {
@@ -645,18 +650,19 @@ public class MatcherGui extends Application {
 	public static URL getThemeCss(Theme theme) {
 		String path = "/ui/styles/" + theme.getId() + ".css";
 		URL ret = MatcherGui.class.getResource(path);
-		if (ret == null) throw new RuntimeException("can't find resource "+path);
+		if (ret == null) throw new RuntimeException("can't find resource " + path);
 
 		return ret;
 	}
 
 	public enum SortKey {
-		Name, MappedName, MatchStatus, Similarity;
+		Name, MappedName, MatchStatus, Similarity
 	}
 
-	public static final List<Consumer<MatcherGui>> loadListeners = new ArrayList<>();
+	public static final List<Consumer<MatcherGui>> LOAD_LISTENERS = new ArrayList<>();
 
-	private static final ExecutorService threadPool = Executors.newCachedThreadPool();
+	private static final Logger LOGGER = LoggerFactory.getLogger(MatcherGui.class);
+	private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
 
 	private ClassEnvironment env;
 	private Matcher matcher;

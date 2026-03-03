@@ -109,4 +109,7 @@ public final class SignatureInference<T> {
 			}
 		}
 	}
+
+	private SignatureInference() {
+	}
 }

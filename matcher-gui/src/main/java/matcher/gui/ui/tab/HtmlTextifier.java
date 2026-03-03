@@ -33,8 +33,6 @@
 
 package matcher.gui.ui.tab;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -55,13 +53,14 @@ import org.objectweb.asm.util.TraceSignatureVisitor;
 
 import matcher.gui.srcprocess.HtmlUtil;
 import matcher.model.NameType;
+import matcher.model.Util;
 import matcher.model.type.ClassInstance;
 import matcher.model.type.FieldInstance;
 import matcher.model.type.MethodInstance;
 
 final class HtmlTextifier extends Textifier {
 	HtmlTextifier(ClassInstance cls, NameType nameType) {
-		super(Opcodes.ASM9);
+		super(Util.ASM_API_VERSION);
 
 		this.cls = cls;
 		this.nameType = nameType;
@@ -155,7 +154,7 @@ final class HtmlTextifier extends Textifier {
 					.append(" implements")
 					.append("</span> ");
 
-			for (int i = 0; i < interfaces.length; ++i) {
+			for (int i = 0; i < interfaces.length; i++) {
 				appendDescriptor(INTERNAL_NAME, interfaces[i]);
 
 				if (i != interfaces.length - 1) {
@@ -191,7 +190,7 @@ final class HtmlTextifier extends Textifier {
 					.append("</span>\n");
 		}
 
-		if (stringBuilder.length() > 0) {
+		if (!stringBuilder.isEmpty()) {
 			text.add(stringBuilder.toString());
 		}
 	}
@@ -339,7 +338,7 @@ final class HtmlTextifier extends Textifier {
 			final String signature,
 			final Object value) {
 		FieldInstance field = cls.getField(name, descriptor, nameType);
-		if (field != null) text.add(String.format("<div id=\"%s\">", HtmlUtil.getId(field)));
+		if (field != null) text.add("<div id=\"%s\">".formatted(HtmlUtil.getId(field)));
 
 		stringBuilder.setLength(0);
 		stringBuilder.append('\n');
@@ -396,7 +395,7 @@ final class HtmlTextifier extends Textifier {
 			final String signature,
 			final String[] exceptions) {
 		MethodInstance method = cls.getMethod(name, descriptor, nameType);
-		if (method != null) text.add(String.format("<div id=\"%s\">", HtmlUtil.getId(method)));
+		if (method != null) text.add("<div id=\"%s\">".formatted(HtmlUtil.getId(method)));
 
 		stringBuilder.setLength(0);
 		stringBuilder.append('\n');
@@ -576,7 +575,7 @@ final class HtmlTextifier extends Textifier {
 		appendRawAccess(access);
 
 		if (modules != null && modules.length > 0) {
-			for (int i = 0; i < modules.length; ++i) {
+			for (int i = 0; i < modules.length; i++) {
 				stringBuilder
 						.append(tab2)
 						.append("<span class=\"import-declaration-package\">")
@@ -615,7 +614,7 @@ final class HtmlTextifier extends Textifier {
 				.append(" <span class=\"keyword\">")
 				.append("with")
 				.append("</span>\n");
-		for (int i = 0; i < providers.length; ++i) {
+		for (int i = 0; i < providers.length; i++) {
 			stringBuilder.append(tab2);
 			appendDescriptor(INTERNAL_NAME, providers[i]);
 			stringBuilder.append(i != providers.length - 1 ? ",\n" : ";\n");
@@ -633,81 +632,65 @@ final class HtmlTextifier extends Textifier {
 	public void visit(final String name, final Object value) {
 		visitAnnotationValue(name);
 
-		if (value instanceof String) {
-			visitString((String) value);
-		} else if (value instanceof Type) {
-			visitType((Type) value);
-		} else if (value instanceof Byte) {
-			visitByte(((Byte) value).byteValue());
-		} else if (value instanceof Boolean) {
-			visitBoolean(((Boolean) value).booleanValue());
-		} else if (value instanceof Short) {
-			visitShort(((Short) value).shortValue());
-		} else if (value instanceof Character) {
-			visitChar(((Character) value).charValue());
-		} else if (value instanceof Integer) {
-			visitInt(((Integer) value).intValue());
-		} else if (value instanceof Float) {
-			visitFloat(((Float) value).floatValue());
-		} else if (value instanceof Long) {
-			visitLong(((Long) value).longValue());
-		} else if (value instanceof Double) {
-			visitDouble(((Double) value).doubleValue());
+		if (value instanceof String string) {
+			visitString(string);
+		} else if (value instanceof Type type) {
+			visitType(type);
+		} else if (value instanceof Byte boxedByte) {
+			visitByte(boxedByte);
+		} else if (value instanceof Boolean boxedBoolean) {
+			visitBoolean(boxedBoolean);
+		} else if (value instanceof Short boxedShort) {
+			visitShort(boxedShort);
+		} else if (value instanceof Character boxedChar) {
+			visitChar(boxedChar);
+		} else if (value instanceof Integer boxedInt) {
+			visitInt(boxedInt);
+		} else if (value instanceof Float boxedFloat) {
+			visitFloat(boxedFloat);
+		} else if (value instanceof Long boxedLong) {
+			visitLong(boxedLong);
+		} else if (value instanceof Double boxedDouble) {
+			visitDouble(boxedDouble);
 		} else if (value.getClass().isArray()) {
 			stringBuilder.append('{');
 
-			if (value instanceof byte[]) {
-				byte[] byteArray = (byte[]) value;
-
+			if (value instanceof byte[] byteArray) {
 				for (int i = 0; i < byteArray.length; i++) {
 					maybeAppendComma(i);
 					visitByte(byteArray[i]);
 				}
-			} else if (value instanceof boolean[]) {
-				boolean[] booleanArray = (boolean[]) value;
-
+			} else if (value instanceof boolean[] booleanArray) {
 				for (int i = 0; i < booleanArray.length; i++) {
 					maybeAppendComma(i);
 					visitBoolean(booleanArray[i]);
 				}
-			} else if (value instanceof short[]) {
-				short[] shortArray = (short[]) value;
-
+			} else if (value instanceof short[] shortArray) {
 				for (int i = 0; i < shortArray.length; i++) {
 					maybeAppendComma(i);
 					visitShort(shortArray[i]);
 				}
-			} else if (value instanceof char[]) {
-				char[] charArray = (char[]) value;
-
+			} else if (value instanceof char[] charArray) {
 				for (int i = 0; i < charArray.length; i++) {
 					maybeAppendComma(i);
 					visitChar(charArray[i]);
 				}
-			} else if (value instanceof int[]) {
-				int[] intArray = (int[]) value;
-
+			} else if (value instanceof int[] intArray) {
 				for (int i = 0; i < intArray.length; i++) {
 					maybeAppendComma(i);
 					visitInt(intArray[i]);
 				}
-			} else if (value instanceof long[]) {
-				long[] longArray = (long[]) value;
-
+			} else if (value instanceof long[] longArray) {
 				for (int i = 0; i < longArray.length; i++) {
 					maybeAppendComma(i);
 					visitLong(longArray[i]);
 				}
-			} else if (value instanceof float[]) {
-				float[] floatArray = (float[]) value;
-
+			} else if (value instanceof float[] floatArray) {
 				for (int i = 0; i < floatArray.length; i++) {
 					maybeAppendComma(i);
 					visitFloat(floatArray[i]);
 				}
-			} else if (value instanceof double[]) {
-				double[] doubleArray = (double[]) value;
-
+			} else if (value instanceof double[] doubleArray) {
 				for (int i = 0; i < doubleArray.length; i++) {
 					maybeAppendComma(i);
 					visitDouble(doubleArray[i]);
@@ -861,7 +844,7 @@ final class HtmlTextifier extends Textifier {
 		appendAccess(access);
 		stringBuilder
 				.append(' ')
-				.append((name == null) ? "<no name>" : name)
+				.append(name == null ? "<no name>" : name)
 				.append("</span>\n");
 		text.add(stringBuilder.toString());
 	}
@@ -995,7 +978,7 @@ final class HtmlTextifier extends Textifier {
 		} else {
 			stringBuilder
 					.append("</span>")
-					.append(Integer.toString(operand));
+					.append(operand);
 		}
 
 		stringBuilder.append('\n');
@@ -1120,20 +1103,18 @@ final class HtmlTextifier extends Textifier {
 			for (Object value : bootstrapMethodArguments) {
 				stringBuilder.append(tab3);
 
-				if (value instanceof String) {
+				if (value instanceof String string) {
 					stringBuilder.append("<span class=\"string\">");
-					Printer.appendString(stringBuilder, (String) value);
+					Printer.appendString(stringBuilder, string);
 					stringBuilder.append("</span>");
-				} else if (value instanceof Type) {
-					Type type = (Type) value;
-
+				} else if (value instanceof Type type) {
 					if (type.getSort() == Type.METHOD) {
 						appendDescriptor(METHOD_DESCRIPTOR, type.getDescriptor());
 					} else {
 						visitType(type);
 					}
-				} else if (value instanceof Handle) {
-					appendHandle((Handle) value);
+				} else if (value instanceof Handle handle) {
+					appendHandle(handle);
 				} else {
 					stringBuilder.append(value);
 				}
@@ -1173,14 +1154,14 @@ final class HtmlTextifier extends Textifier {
 				.append("<span class=\"keyword\">")
 				.append("LDC")
 				.append("</span> ");
-		if (value instanceof String) {
+		if (value instanceof String string) {
 			stringBuilder.append("<span class=\"string\">");
-			Printer.appendString(stringBuilder, (String) value);
+			Printer.appendString(stringBuilder, string);
 			stringBuilder.append("</span>");
-		} else if (value instanceof Type) {
+		} else if (value instanceof Type type) {
 			stringBuilder
 					.append("<span class=\"class-name\">")
-					.append(((Type) value).getDescriptor())
+					.append(type.getDescriptor())
 					.append("</span>")
 					.append("<span class=\"field\">")
 					.append(CLASS_SUFFIX)
@@ -1220,7 +1201,7 @@ final class HtmlTextifier extends Textifier {
 				.append("<span class=\"keyword\">")
 				.append("TABLESWITCH")
 				.append("</span>\n");
-		for (int i = 0; i < labels.length; ++i) {
+		for (int i = 0; i < labels.length; i++) {
 			stringBuilder
 					.append(tab3)
 					.append(min + i)
@@ -1245,7 +1226,7 @@ final class HtmlTextifier extends Textifier {
 				.append("<span class=\"keyword\">")
 				.append("LOOKUPSWITCH")
 				.append("</span>\n");
-		for (int i = 0; i < labels.length; ++i) {
+		for (int i = 0; i < labels.length; i++) {
 			stringBuilder
 					.append(tab3)
 					.append(keys[i])
@@ -1385,7 +1366,7 @@ final class HtmlTextifier extends Textifier {
 		stringBuilder
 				.append(", ")
 				.append(typePath);
-		for (int i = 0; i < start.length; ++i) {
+		for (int i = 0; i < start.length; i++) {
 			stringBuilder.append(" [ ");
 			appendLabel(start[i]);
 			stringBuilder.append(" - ");
@@ -1504,12 +1485,12 @@ final class HtmlTextifier extends Textifier {
 				.append("</span> ");
 		appendDescriptor(-1, attribute.type);
 
-		if (attribute instanceof TextifierSupport) {
+		if (attribute instanceof TextifierSupport support) {
 			if (labelNames == null) {
 				labelNames = new HashMap<>();
 			}
 
-			((TextifierSupport) attribute).textify(stringBuilder, labelNames);
+			support.textify(stringBuilder, labelNames);
 		} else {
 			stringBuilder.append(" : unknown\n");
 		}
@@ -1650,14 +1631,8 @@ final class HtmlTextifier extends Textifier {
 			labelNames = new HashMap<>();
 		}
 
-		String name = labelNames.get(label);
-
-		if (name == null) {
-			name = "L" + labelNames.size();
-			labelNames.put(label, name);
-		}
-
-		boolean number = numberPattern.matcher(name).matches();
+		String name = labelNames.computeIfAbsent(label, k -> "L" + labelNames.size());
+		boolean number = NUMBER_PATTERN.matcher(name).matches();
 
 		stringBuilder
 				.append(number ? "<span class=\"number\">" : "<span class=\"variable\">")
@@ -1666,6 +1641,7 @@ final class HtmlTextifier extends Textifier {
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	protected void appendHandle(final Handle handle) {
 		int tag = handle.getTag();
 		stringBuilder
@@ -1895,23 +1871,21 @@ final class HtmlTextifier extends Textifier {
 	 *     org.objectweb.asm.MethodVisitor#visitFrame}.
 	 */
 	private void appendFrameTypes(final int numTypes, final Object[] frameTypes) {
-		for (int i = 0; i < numTypes; ++i) {
+		for (int i = 0; i < numTypes; i++) {
 			if (i > 0) {
 				stringBuilder.append(' ');
 			}
 
-			if (frameTypes[i] instanceof String) {
-				String descriptor = (String) frameTypes[i];
-
+			if (frameTypes[i] instanceof String descriptor) {
 				if (descriptor.charAt(0) == '[') {
 					appendDescriptor(FIELD_DESCRIPTOR, descriptor);
 				} else {
 					appendDescriptor(INTERNAL_NAME, descriptor);
 				}
-			} else if (frameTypes[i] instanceof Integer) {
+			} else if (frameTypes[i] instanceof Integer integer) {
 				stringBuilder
 						.append("<span class=\"class-name\">")
-						.append(FRAME_TYPES.get(((Integer) frameTypes[i]).intValue()))
+						.append(FRAME_TYPES.get(integer))
 						.append("</span>");
 			} else {
 				appendLabel((Label) frameTypes[i]);
@@ -1947,11 +1921,10 @@ final class HtmlTextifier extends Textifier {
 			for (ListIterator<Object> it = ((List<Object>) o).listIterator(); it.hasNext(); ) {
 				it.set(escape(it.next()));
 			}
-		} else if (o instanceof String) {
-			String str = (String) o;
+		} else if (o instanceof String str) {
 			o = HtmlUtil.escape(str, "div", "span");
 		} else {
-			throw new IllegalStateException("unexpected object type: "+o.getClass());
+			throw new IllegalStateException("unexpected object type: " + o.getClass());
 		}
 
 		return o;
@@ -1986,9 +1959,9 @@ final class HtmlTextifier extends Textifier {
 	private static final String INVISIBLE = " <span class=\"comment\">// invisible</span>\n";
 
 	private static final List<String> FRAME_TYPES =
-			Collections.unmodifiableList(Arrays.asList("T", "I", "F", "D", "J", "N", "U"));
+			List.of("T", "I", "F", "D", "J", "N", "U");
 
-	private static final Pattern numberPattern = Pattern.compile("-?\\d+(\\.\\d+)?");
+	private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
 	/** The access flags of the visited class. */
 	private int access;

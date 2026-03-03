@@ -135,8 +135,8 @@ import com.github.javaparser.utils.Utils;
 import matcher.model.type.FieldInstance;
 import matcher.model.type.MethodInstance;
 
-public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
-	public HtmlPrinter(TypeResolver typeResolver) {
+class HtmlPrinter extends DefaultPrettyPrinterVisitor {
+	HtmlPrinter(TypeResolver typeResolver) {
 		super(new DefaultPrinterConfiguration()
 				.addOption(new DefaultConfigurationOption(ConfigOption.INDENTATION, new Indentation(IndentType.TABS, 1)))
 				.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, "\n"))
@@ -205,7 +205,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 				return 4;
 			}
 		} else {
-			throw new RuntimeException("unknown body decl type: "+decl.getClass().getName());
+			throw new RuntimeException("unknown body decl type: " + decl.getClass().getName());
 		}
 	}
 
@@ -551,7 +551,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 			Optional<Type> maximumCommonType = n.getMaximumCommonType();
 			maximumCommonType.ifPresent(t -> t.accept(this, arg));
 
-			if (!maximumCommonType.isPresent()) {
+			if (maximumCommonType.isEmpty()) {
 				printer.print("???");
 			}
 		}
@@ -592,6 +592,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void visit(final VariableDeclarator n, final Void arg) {
 		printOrphanCommentsBeforeThisChildNode(n);
 		printComment(n.getComment(), arg);
@@ -805,6 +806,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void visit(final MethodCallExpr n, final Void arg) {
 		printOrphanCommentsBeforeThisChildNode(n);
 		printComment(n.getComment(), arg);
@@ -835,7 +837,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 				}
 
 				// check if the parent is a method call and thus we are in an argument list
-				columnAlignFirstMethodChain.set(!p.filter(MethodCallExpr.class::isInstance).isPresent());
+				columnAlignFirstMethodChain.set(p.filter(MethodCallExpr.class::isInstance).isEmpty());
 			}
 		}
 
@@ -897,7 +899,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 					scope = firstScopePart;
 
 					lastScopePart = (NameExpr) scope.clone();
-					lastScopePart.setName(oldName.substring(dotIndex, oldName.length()));
+					lastScopePart.setName(oldName.substring(dotIndex));
 				}
 			}
 
@@ -1142,7 +1144,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 			}
 		}
 
-		if (!n.getBody().isPresent()) {
+		if (n.getBody().isEmpty()) {
 			printer.print(";");
 		} else {
 			printer.print(" ");
@@ -1167,7 +1169,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 			printer.print("...");
 		}
 
-		if (!(n.getType().isUnknownType())) {
+		if (!n.getType().isUnknownType()) {
 			printer.print(" ");
 		}
 
@@ -1253,7 +1255,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		printOrphanCommentsBeforeThisChildNode(n);
 		printComment(n.getComment(), arg);
 
-		final String separator = (n.getType() == SwitchEntry.Type.STATEMENT_GROUP) ? ":" : " ->"; // old/new switch
+		final String separator = n.getType() == SwitchEntry.Type.STATEMENT_GROUP ? ":" : " ->"; // old/new switch
 
 		if (isNullOrEmpty(n.getLabels())) {
 			printer.print("<span class=\"keyword\">default</span>" + separator);
@@ -1442,7 +1444,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		boolean thenBlock = n.getThenStmt() instanceof BlockStmt;
 
 		while (thenBlock
-				&& !n.getElseStmt().isPresent()
+				&& n.getElseStmt().isEmpty()
 				&& ((BlockStmt) n.getThenStmt()).getStatements().size() == 1
 				&& !(n.getParentNode().orElse(null) instanceof IfStmt)) {
 			Statement stmt = ((BlockStmt) n.getThenStmt()).getStatements().get(0);
@@ -1455,7 +1457,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		Node prev = getPrev(n);
 
 		if (thenBlock
-				&& (canAddNewLine(n) || prev instanceof IfStmt && !((IfStmt) prev).hasThenBlock())
+				&& (canAddNewLine(n) || prev instanceof IfStmt prevIfStmt && !prevIfStmt.hasThenBlock())
 				&& !(n.getParentNode().orElse(null) instanceof IfStmt)) {
 			printer.println();
 		}
@@ -1766,7 +1768,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		printOrphanCommentsBeforeThisChildNode(n);
 		printComment(n.getComment(), arg);
 
-		boolean annotation = (n.getParentNode().get() instanceof NormalAnnotationExpr);
+		boolean annotation = n.getParentNode().get() instanceof NormalAnnotationExpr;
 
 		if (annotation) printer.print("<span class=\"assigned-annotation-member\">");
 		n.getName().accept(this, arg);
@@ -1778,7 +1780,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 
 	@Override
 	public void visit(final LineComment n, final Void arg) {
-		if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) {
+		if (getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) {
 			return;
 		}
 
@@ -1791,7 +1793,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 
 	@Override
 	public void visit(final BlockComment n, final Void arg) {
-		if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) {
+		if (getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) {
 			return;
 		}
 
@@ -1889,7 +1891,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 	}
 
 	private void printOrphanCommentsBeforeThisChildNode(final Node node) {
-		if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) return;
+		if (getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) return;
 		if (node instanceof Comment) return;
 
 		Node parent = node.getParentNode().orElse(null);
@@ -1898,7 +1900,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		sortByBeginPosition(everything);
 		int positionOfTheChild = -1;
 
-		for (int i = 0; i < everything.size(); ++i) { // indexOf is by equality, so this is used to index by identity
+		for (int i = 0; i < everything.size(); i++) { // indexOf is by equality, so this is used to index by identity
 			if (everything.get(i) == node) {
 				positionOfTheChild = i;
 				break;
@@ -1929,7 +1931,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 	}
 
 	private void printOrphanCommentsEnding(final Node node) {
-		if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) return;
+		if (getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) return;
 
 		List<Node> everything = new ArrayList<>(node.getChildNodes());
 		sortByBeginPosition(everything);
@@ -1943,7 +1945,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 
 		while (findingComments && commentsAtEnd < everything.size()) {
 			Node last = everything.get(everything.size() - 1 - commentsAtEnd);
-			findingComments = (last instanceof Comment);
+			findingComments = last instanceof Comment;
 
 			if (findingComments) {
 				commentsAtEnd++;
@@ -2006,7 +2008,7 @@ public class HtmlPrinter extends DefaultPrettyPrinterVisitor {
 		return parent.getChildNodes().get(idx + 1);
 	}
 
-	private static Pattern RTRIM = Pattern.compile("\\s+$");
+	private static final Pattern RTRIM = Pattern.compile("\\s+$");
 	protected final TypeResolver typeResolver;
 	protected boolean instantiationAhead;
 	protected int recursionCounter;

@@ -48,13 +48,9 @@ public final class FieldInstance extends MemberInstance<FieldInstance> {
 
 	@Override
 	public String getDisplayName(NameType type, boolean full) {
-		StringBuilder ret = new StringBuilder(64);
-
-		ret.append(super.getDisplayName(type, full));
-		ret.append(' ');
-		ret.append(this.type.getDisplayName(type, full));
-
-		return ret.toString();
+		return super.getDisplayName(type, full)
+				+ ' '
+				+ this.type.getDisplayName(type, full);
 	}
 
 	@Override
@@ -145,7 +141,7 @@ public final class FieldInstance extends MemberInstance<FieldInstance> {
 		int uid = getUid();
 		if (uid < 0) return null;
 
-		return cls.env.getGlobal().fieldUidPrefix+uid;
+		return ClassEnvironment.FIELD_UID_PREFIX +uid;
 	}
 
 	@Override

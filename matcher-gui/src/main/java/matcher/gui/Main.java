@@ -18,7 +18,7 @@ public class Main {
 			case "--additional-plugins":
 				extraPluginPaths = new ArrayList<>();
 
-				while (i+1 < args.length && !args[i+1].startsWith("--")) {
+				while (i + 1 < args.length && !args[i + 1].startsWith("--")) {
 					extraPluginPaths.add(args[++i]);
 				}
 

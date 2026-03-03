@@ -127,7 +127,11 @@ public class Matcher {
 		if (a.getArrayDimensions() != b.getArrayDimensions()) throw new IllegalArgumentException("the classes don't have the same amount of array dimensions");
 		if (a.getMatch() == b) return;
 
-		LOGGER.debug("Matching class {} -> {}{}", a, b, (a.hasMappedName() ? " ("+a.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(a)
+				.addArgument(b)
+				.addArgument(() -> (a.hasMappedName() ? " (" + a.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Matching class {} -> {}{}");
 
 		if (a.getMatch() != null) {
 			a.getMatch().setMatch(null);
@@ -254,7 +258,11 @@ public class Matcher {
 		if (a.getCls().getMatch() != b.getCls()) throw new IllegalArgumentException("the methods don't belong to the same class");
 		if (a.getMatch() == b) return;
 
-		LOGGER.debug("Matching method {} -> {}{}", a, b, (a.hasMappedName() ? " ("+a.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(a)
+				.addArgument(b)
+				.addArgument(() -> (a.hasMappedName() ? " (" + a.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Matching method {} -> {}{}");
 
 		Set<MethodInstance> membersA = a.getAllHierarchyMembers();
 		Set<MethodInstance> membersB = b.getAllHierarchyMembers();
@@ -323,7 +331,11 @@ public class Matcher {
 		if (a.getCls().getMatch() != b.getCls()) throw new IllegalArgumentException("the methods don't belong to the same class");
 		if (a.getMatch() == b) return;
 
-		LOGGER.debug("Matching field {} -> {}{}", a, b, (a.hasMappedName() ? " ("+a.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(a)
+				.addArgument(b)
+				.addArgument(() -> (a.hasMappedName() ? " (" + a.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Matching field {} -> {}{}");
 
 		if (a.getMatch() != null) a.getMatch().setMatch(null);
 		if (b.getMatch() != null) b.getMatch().setMatch(null);
@@ -341,7 +353,11 @@ public class Matcher {
 		if (a.isArg() != b.isArg()) throw new IllegalArgumentException("the method vars are not of the same kind");
 		if (a.getMatch() == b) return;
 
-		LOGGER.debug("Matching method arg {} -> {}{}", a, b, (a.hasMappedName() ? " ("+a.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(a)
+				.addArgument(b)
+				.addArgument(() -> (a.hasMappedName() ? " (" + a.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Matching method arg {} -> {}{}");
 
 		if (a.getMatch() != null) a.getMatch().setMatch(null);
 		if (b.getMatch() != null) b.getMatch().setMatch(null);
@@ -356,7 +372,11 @@ public class Matcher {
 		if (cls == null) throw new NullPointerException("null class");
 		if (cls.getMatch() == null) return;
 
-		LOGGER.debug("Unmatching class {} (was {}){}", cls, cls.getMatch(), (cls.hasMappedName() ? " ("+cls.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(cls)
+				.addArgument(cls.getMatch())
+				.addArgument(() -> (cls.hasMappedName() ? " (" + cls.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Unmatching class {} (was {}){}");
 
 		cls.getMatch().setMatch(null);
 		cls.setMatch(null);
@@ -378,7 +398,11 @@ public class Matcher {
 		if (m == null) throw new NullPointerException("null member");
 		if (m.getMatch() == null) return;
 
-		LOGGER.debug("Unmatching member {} (was {}){}", m, m.getMatch(), (m.hasMappedName() ? " ("+m.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(m)
+				.addArgument(m.getMatch())
+				.addArgument(() -> (m.hasMappedName() ? " (" + m.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Unmatching member {} (was {}){}");
 
 		if (m instanceof MethodInstance) {
 			for (MethodVarInstance arg : ((MethodInstance) m).getArgs()) {
@@ -406,7 +430,11 @@ public class Matcher {
 		if (a == null) throw new NullPointerException("null method var");
 		if (a.getMatch() == null) return;
 
-		LOGGER.debug("Unmatching method var {} (was {}){}", a, a.getMatch(), (a.hasMappedName() ? " ("+a.getName(NameType.MAPPED_PLAIN)+")" : ""));
+		LOGGER.atDebug()
+				.addArgument(a)
+				.addArgument(a.getMatch())
+				.addArgument(() -> (a.hasMappedName() ? " (" + a.getName(NameType.MAPPED_PLAIN) + ")" : ""))
+				.log("Unmatching method var {} (was {}){}");
 
 		a.getMatch().setMatch(null);
 		a.setMatch(null);
@@ -463,7 +491,7 @@ public class Matcher {
 
 		ClassInstance[] cmpClasses = env.getClassesB().stream()
 				.filter(filter)
-				.collect(Collectors.toList()).toArray(new ClassInstance[0]);
+				.toArray(ClassInstance[]::new);
 
 		double maxScore = ClassClassifier.getMaxScore(level);
 		double maxMismatch = maxScore - ClassifierUtil.getRawScore(absThreshold * (1 - relThreshold), maxScore);
@@ -485,7 +513,11 @@ public class Matcher {
 			match(entry.getKey(), entry.getValue());
 		}
 
-		LOGGER.info("Auto matched {} classes ({} unmatched, {} total)", matches.size(), (classes.size() - matches.size()), env.getClassesA().size());
+		LOGGER.atInfo()
+				.addArgument(matches::size)
+				.addArgument(() -> (classes.size() - matches.size()))
+				.addArgument(() -> env.getClassesA().size())
+				.log("Auto matched {} classes ({} unmatched, {} total)");
 
 		return !matches.isEmpty();
 	}
@@ -497,7 +529,7 @@ public class Matcher {
 		int updateRate = Math.max(1, workSet.size() / 200);
 
 		try {
-			List<Future<Void>> futures = threadPool.invokeAll(workSet.stream().<Callable<Void>>map(workItem -> () -> {
+			List<Future<Void>> futures = THREAD_POOL.invokeAll(workSet.stream().<Callable<Void>>map(workItem -> () -> {
 				worker.accept(workItem);
 
 				int cItemsDone = itemsDone.incrementAndGet();
@@ -524,14 +556,17 @@ public class Matcher {
 	public boolean autoMatchMethods(ClassifierLevel level, double absThreshold, double relThreshold, DoubleConsumer progressReceiver) {
 		AtomicInteger totalUnmatched = new AtomicInteger();
 		Map<MethodInstance, MethodInstance> matches = match(level, absThreshold, relThreshold,
-				cls -> cls.getMethods(), MethodClassifier::rank, MethodClassifier.getMaxScore(level),
+				ClassInstance::getMethods, MethodClassifier::rank, MethodClassifier.getMaxScore(level),
 				progressReceiver, totalUnmatched);
 
 		for (Map.Entry<MethodInstance, MethodInstance> entry : matches.entrySet()) {
 			match(entry.getKey(), entry.getValue());
 		}
 
-		LOGGER.info("Auto matched {} methods ({} unmatched)", matches.size(), totalUnmatched.get());
+		LOGGER.atInfo()
+				.addArgument(matches::size)
+				.addArgument(totalUnmatched::get)
+				.log("Auto matched {} methods ({} unmatched)");
 
 		return !matches.isEmpty();
 	}
@@ -545,14 +580,17 @@ public class Matcher {
 		double maxScore = FieldClassifier.getMaxScore(level);
 
 		Map<FieldInstance, FieldInstance> matches = match(level, absThreshold, relThreshold,
-				cls -> cls.getFields(), FieldClassifier::rank, maxScore,
+				ClassInstance::getFields, FieldClassifier::rank, maxScore,
 				progressReceiver, totalUnmatched);
 
 		for (Map.Entry<FieldInstance, FieldInstance> entry : matches.entrySet()) {
 			match(entry.getKey(), entry.getValue());
 		}
 
-		LOGGER.info("Auto matched {} fields ({} unmatched)", matches.size(), totalUnmatched.get());
+		LOGGER.atInfo()
+				.addArgument(matches::size)
+				.addArgument(totalUnmatched::get)
+				.log("Auto matched {} fields ({} unmatched)");
 
 		return !matches.isEmpty();
 	}
@@ -620,7 +658,7 @@ public class Matcher {
 			ClassifierLevel level, double absThreshold, double relThreshold, DoubleConsumer progressReceiver) {
 		List<MethodInstance> methods = env.getClassesA().stream()
 				.filter(cls -> cls.isReal() && cls.hasMatch() && cls.getMethods().length > 0)
-				.flatMap(cls -> Stream.<MethodInstance>of(cls.getMethods()))
+				.flatMap(cls -> Stream.of(cls.getMethods()))
 				.filter(m -> m.hasMatch() && supplier.apply(m).length > 0)
 				.filter(m -> {
 					for (MethodVarInstance a : supplier.apply(m)) {
@@ -667,7 +705,11 @@ public class Matcher {
 			match(entry.getKey(), entry.getValue());
 		}
 
-		LOGGER.info("Auto matched {} method {}s ({} unmatched)", matches.size(), (isArg ? "arg" : "var"), totalUnmatched.get());
+		LOGGER.atInfo()
+				.addArgument(matches::size)
+				.addArgument(() -> (isArg ? "arg" : "var"))
+				.addArgument(totalUnmatched::get)
+				.log("Auto matched {} method {}s ({} unmatched)");
 
 		return !matches.isEmpty();
 	}
@@ -771,8 +813,8 @@ public class Matcher {
 		public final int matchedFieldCount;
 	}
 
-	public static final ExecutorService threadPool = Executors.newWorkStealingPool();
-	public static final Logger LOGGER = LoggerFactory.getLogger("Matcher");
+	public static final ExecutorService THREAD_POOL = Executors.newWorkStealingPool();
+	private static final Logger LOGGER = LoggerFactory.getLogger(Matcher.class);
 
 	private final ClassEnvironment env;
 	private final ClassifierLevel autoMatchLevel = ClassifierLevel.Extra;

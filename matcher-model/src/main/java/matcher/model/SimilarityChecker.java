@@ -79,8 +79,8 @@ public final class SimilarityChecker {
 		float contentScore = 0;
 		int[] insnMap = ClassifierUtil.mapInsns(a, b);
 
-		for (int i = 0; i < insnMap.length; i++) {
-			if (insnMap[i] >= 0) contentScore++;
+		for (int i : insnMap) {
+			if (i >= 0) contentScore++;
 		}
 
 		div = Math.max(insnMap.length, b.getAsmNode().instructions.size());
@@ -101,9 +101,12 @@ public final class SimilarityChecker {
 		return ClassifierUtil.checkPotentialEquality(a.getType(), b.getType()) ? 1 : SIMILARITY_MATCHED_TYPE_MISMATCH;
 	}
 
-	private static final float SIMILARITY_MATCHED_TYPE_MISMATCH = 0.5f;
+	private SimilarityChecker() {
+	}
 
-	private static final float METHOD_RETTYPE_WEIGHT = 0.05f;
-	private static final float METHOD_ARGS_WEIGHT = 0.2f;
+	private static final float SIMILARITY_MATCHED_TYPE_MISMATCH = 0.5F;
+
+	private static final float METHOD_RETTYPE_WEIGHT = 0.05F;
+	private static final float METHOD_ARGS_WEIGHT = 0.2F;
 	private static final float METHOD_CONTENT_WEIGHT = 1 - METHOD_RETTYPE_WEIGHT - METHOD_ARGS_WEIGHT;
 }

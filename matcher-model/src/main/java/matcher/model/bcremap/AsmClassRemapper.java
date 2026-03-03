@@ -17,7 +17,7 @@ import org.objectweb.asm.tree.ClassNode;
 
 import matcher.model.Util;
 
-public class AsmClassRemapper extends ClassRemapper {
+public final class AsmClassRemapper extends ClassRemapper {
 	public static void process(ClassNode source, AsmRemapper remapper, ClassVisitor sink) {
 		source.accept(new AsmClassRemapper(sink, remapper));
 	}
@@ -296,13 +296,13 @@ public class AsmClassRemapper extends ClassRemapper {
 		}
 
 		protected final AsmRemapper remapper;
+		protected final Map<Label, Integer> labels = new IdentityHashMap<>();
 
 		protected int insnIndex;
-		protected Map<Label, Integer> labels = new IdentityHashMap<>();
 		private int argsVisited;
 	}
 
-	protected final AsmRemapper remapper;
-	protected String methodName;
-	protected String methodDesc;
+	private final AsmRemapper remapper;
+	private String methodName;
+	private String methodDesc;
 }

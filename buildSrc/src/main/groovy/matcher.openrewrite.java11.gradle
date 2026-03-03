@@ -1,0 +1,8 @@
+plugins {
+	id 'org.openrewrite.rewrite'
+	id 'matcher.openrewrite.base'
+}
+
+rewrite {
+	activeRecipe("org.openrewrite.java.migrate.Java8toJava11")
+}

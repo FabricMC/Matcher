@@ -2,6 +2,7 @@ plugins {
 	id 'matcher.common'
 	id 'matcher.publishing.maven'
 	id 'matcher.publishing.github.no-natives'
+	id 'matcher.openrewrite.java17'
 	id 'org.gradlex.extra-java-module-info'
 	id 'application'
 }

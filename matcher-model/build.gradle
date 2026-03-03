@@ -1,6 +1,7 @@
 plugins {
 	id 'matcher.common'
 	id 'matcher.publishing.maven'
+	id 'matcher.openrewrite.java11'
 }
 
 base {

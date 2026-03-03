@@ -3,7 +3,10 @@ package matcher.cli.provider.builtin;
 /**
  * All CLI parameters the CLI module handles by default.
  */
-public class BuiltinCliParameters {
+public final class BuiltinCliParameters {
+	private BuiltinCliParameters() {
+	}
+
 	public static final String ADDITIONAL_PLUGINS = "--additional-plugins";
 	public static final String INPUTS_A = "--inputs-a";
 	public static final String INPUTS_B = "--inputs-b";

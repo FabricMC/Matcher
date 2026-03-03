@@ -47,12 +47,12 @@ abstract class WebViewTab extends Tab implements IGuiComponent.Selectable {
 		html = template.replace("%text%", html)
 				.replace("%theme_path%", MatcherGui.getThemeCss(Config.getTheme()).toExternalForm());
 
-		//Matcher.LOGGER.debug(html);
+		// LOGGER.debug(html);
 		webView.getEngine().loadContent(html);
 	}
 
 	protected void select(String anchorId) {
-		addWebViewTask(() -> webView.getEngine().executeScript("var newAnchor = document.getElementById('"+anchorId+"');"
+		addWebViewTask(() -> webView.getEngine().executeScript("var newAnchor = document.getElementById('" + anchorId + "');"
 				+ "if (newAnchor !== null) document.body.scrollTop = newAnchor.getBoundingClientRect().top + window.scrollY;"
 				+ "if (window.hasOwnProperty('anchorElem') && window.anchorElem !== null) window.anchorElem.classList.remove('selected');"
 				+ "if (newAnchor !== null) newAnchor.classList.add('selected');"
@@ -71,7 +71,7 @@ abstract class WebViewTab extends Tab implements IGuiComponent.Selectable {
 	}
 
 	protected void setScrollTop(double value) {
-		addWebViewTask(() -> webView.getEngine().executeScript("document.body.scrollTop = "+value));
+		addWebViewTask(() -> webView.getEngine().executeScript("document.body.scrollTop = " + value));
 	}
 
 	private void addWebViewTask(Runnable r) {
@@ -90,7 +90,7 @@ abstract class WebViewTab extends Tab implements IGuiComponent.Selectable {
 		char[] buffer = new char[4000];
 		int offset = 0;
 
-		try (InputStream is = SourcecodeTab.class.getResourceAsStream("/"+name)) {
+		try (InputStream is = SourcecodeTab.class.getResourceAsStream("/" + name)) {
 			if (is == null) throw new FileNotFoundException(name);
 
 			Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);

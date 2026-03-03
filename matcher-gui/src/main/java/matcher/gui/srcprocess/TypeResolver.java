@@ -86,9 +86,7 @@ class TypeResolver {
 			}
 		} while ((node = node.getParentNode().orElse(null)) != null);
 
-		ClassInstance cls = getClsByName(sb.toString());
-
-		return cls;
+		return getClsByName(sb.toString());
 	}
 
 	public <T extends CallableDeclaration<T> & NodeWithParameters<T>> MethodInstance getMethod(T methodDecl) {
@@ -108,8 +106,8 @@ class TypeResolver {
 
 		sb.append(')');
 
-		if (methodDecl instanceof NodeWithType) {
-			sb.append(toDesc(((NodeWithType<?, ?>) methodDecl).getType(), rootCls));
+		if (methodDecl instanceof NodeWithType<?, ?> methodDeclWithType) {
+			sb.append(toDesc(methodDeclWithType.getType(), rootCls));
 		} else {
 			sb.append('V');
 		}
@@ -141,34 +139,29 @@ class TypeResolver {
 		if (cls == null) return null;
 
 		String name = var.getName().getIdentifier();
-		String desc = !cls.isPrimitive() ? "L"+cls.getName(nameType)+";" : cls.getId();
+		String desc = cls.isPrimitive() ? cls.getId() : "L"+cls.getName(nameType)+";";
 
 		return cls.getField(name, desc, nameType);
 	}
 
 	private String toDesc(Type type, ClassInstance context) {
-		if (type instanceof PrimitiveType) {
-			PrimitiveType t = (PrimitiveType) type;
-
-			switch (t.getType()) {
-			case BOOLEAN: return "Z";
-			case BYTE: return "B";
-			case CHAR: return "C";
-			case DOUBLE: return "D";
-			case FLOAT: return "F";
-			case INT: return "I";
-			case LONG: return "J";
-			case SHORT: return "S";
-			default:
-				throw new IllegalArgumentException("invalid primitive type class: "+t.getType().getClass().getName());
-			}
+		if (type instanceof PrimitiveType t) {
+			return switch (t.getType()) {
+			case BOOLEAN -> "Z";
+			case BYTE -> "B";
+			case CHAR -> "C";
+			case DOUBLE -> "D";
+			case FLOAT -> "F";
+			case INT -> "I";
+			case LONG -> "J";
+			case SHORT -> "S";
+			};
 		} else if (type instanceof VoidType) {
 			return "V";
-		} else if (type instanceof ClassOrInterfaceType) {
-			ClassOrInterfaceType t = (ClassOrInterfaceType) type;
+		} else if (type instanceof ClassOrInterfaceType t) {
 			String name;
 
-			if (!t.getScope().isPresent()) {
+			if (t.getScope().isEmpty()) {
 				name = t.getNameAsString();
 			} else {
 				List<String> parts = new ArrayList<>();
@@ -201,9 +194,9 @@ class TypeResolver {
 			int pkgEnd = name.lastIndexOf('/');
 			int nameEnd = name.length();
 
-			for (;;) {
+			while (true) {
 				if (pkgEnd == -1) { // non-fqn (fqn without package was already checked)
-					String cName = name.substring(pkgEnd + 1, nameEnd);
+					String cName = name.substring(0, nameEnd);
 					String suffix = name.substring(nameEnd).replace('/', '$');
 
 					// plain import lookup
@@ -233,8 +226,7 @@ class TypeResolver {
 			}
 
 			return ClassInstance.getId(name);
-		} else if (type instanceof ArrayType) {
-			ArrayType t = (ArrayType) type;
+		} else if (type instanceof ArrayType t) {
 			Type componentType = t.getComponentType();
 			int dims = 1;
 
@@ -243,13 +235,10 @@ class TypeResolver {
 				dims++;
 			}
 
-			StringBuilder ret = new StringBuilder();
-			for (int i = 0; i < dims; i++) ret.append('[');
-			ret.append(toDesc(componentType, context));
-
-			return ret.toString();
+			return "[".repeat(Math.max(0, dims))
+					+ toDesc(componentType, context);
 		} else {
-			throw new IllegalArgumentException("invalid type class: "+type.getClass().getName());
+			throw new IllegalArgumentException("invalid type class: " + type.getClass().getName());
 		}
 	}
 

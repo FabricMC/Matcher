@@ -1,6 +1,7 @@
 package matcher.cli.provider.builtin;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -9,10 +10,11 @@ import java.util.List;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.fabricmc.mappingio.MappingReader;
 
-import matcher.cli.MatcherCli;
 import matcher.cli.provider.CliCommandProvider;
 import matcher.core.Matcher;
 import matcher.core.serdes.MatchesIo;
@@ -26,8 +28,8 @@ import matcher.model.type.ClassEnvironment;
  * Provides the default {@code automatch} command.
  */
 public class AutomatchCliCommandProvider implements CliCommandProvider {
-	@Parameters(commandNames = {commandName})
-	class AutomatchCommand {
+	@Parameters(commandNames = {COMMAND_NAME})
+	static class AutomatchCommand {
 		@Parameter(names = {BuiltinCliParameters.INPUTS_A}, required = true)
 		List<Path> inputsA = Collections.emptyList();
 
@@ -76,7 +78,7 @@ public class AutomatchCliCommandProvider implements CliCommandProvider {
 
 	@Override
 	public String getCommandName() {
-		return commandName;
+		return COMMAND_NAME;
 	}
 
 	@Override
@@ -104,7 +106,7 @@ public class AutomatchCliCommandProvider implements CliCommandProvider {
 				.build();
 
 		Config.setProjectConfig(config);
-		matcher.init(config, (progress) -> { });
+		matcher.init(config, progress -> { });
 
 		if (config.getMappingsPathA() != null) {
 			Path mappingsPath = config.getMappingsPathA();
@@ -116,7 +118,7 @@ public class AutomatchCliCommandProvider implements CliCommandProvider {
 						MappingField.PLAIN, MappingField.MAPPED,
 						env.getEnvA(), true);
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new UncheckedIOException("Failed to load mappings for side A", e);
 			}
 		}
 
@@ -130,24 +132,25 @@ public class AutomatchCliCommandProvider implements CliCommandProvider {
 						MappingField.PLAIN, MappingField.MAPPED,
 						env.getEnvB(), true);
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new UncheckedIOException("Failed to load mappings for side B", e);
 			}
 		}
 
 		for (int i = 0; i < command.passes; i++) {
-			matcher.autoMatchAll((progress) -> { });
+			matcher.autoMatchAll(progress -> { });
 		}
 
 		try {
 			Files.deleteIfExists(command.outputFile);
 			MatchesIo.write(matcher, command.outputFile);
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 
-		MatcherCli.LOGGER.info("Auto-matching done!");
+		LOGGER.info("Auto-matching done!");
 	}
 
-	private static final String commandName = "automatch";
+	private static final Logger LOGGER = LoggerFactory.getLogger(AutomatchCliCommandProvider.class);
+	private static final String COMMAND_NAME = "automatch";
 	private final AutomatchCommand command = new AutomatchCommand();
 }

@@ -42,9 +42,9 @@ public class ClassInfoTab extends Tab implements IGuiComponent {
 
 	private void init() {
 		GridPane grid = new GridPane();
-		grid.setPadding(new Insets(GuiConstants.padding));
-		grid.setHgap(GuiConstants.padding);
-		grid.setVgap(GuiConstants.padding);
+		grid.setPadding(new Insets(GuiConstants.PADDING));
+		grid.setHgap(GuiConstants.PADDING);
+		grid.setVgap(GuiConstants.PADDING);
 		int row = 0;
 
 		row = addRow("Name", nameLabel, grid, row);
@@ -52,7 +52,7 @@ public class ClassInfoTab extends Tab implements IGuiComponent {
 		row = addRow("Mapped name", mappedNameLabel, grid, row);
 
 		for (int i = 0; i < NameType.AUX_COUNT; i++) {
-			row = addRow("AUX name "+(i+1), auxNameLabels[i], grid, row);
+			row = addRow("AUX name " + (i + 1), auxNameLabels[i], grid, row);
 		}
 
 		row = addRow("UID", uidLabel, grid, row);
@@ -74,7 +74,7 @@ public class ClassInfoTab extends Tab implements IGuiComponent {
 	}
 
 	private static int addRow(String name, Node content, GridPane grid, int row) {
-		Label label = new Label(name+":");
+		Label label = new Label(name + ":");
 		label.setMinWidth(Label.USE_PREF_SIZE);
 		grid.add(label, 0, row);
 		GridPane.setValignment(label, VPos.TOP);
@@ -145,7 +145,7 @@ public class ClassInfoTab extends Tab implements IGuiComponent {
 			} else {
 				String sig = cls.getSignature().toString(nameType.withMapped(false));
 				String sigMapped = cls.getSignature().toString(nameType.withMapped(true));
-				sigLabel.setText(sig.equals(sigMapped) ? sig : sig+" - "+sigMapped);
+				sigLabel.setText(sig.equals(sigMapped) ? sig : sig + " - " + sigMapped);
 			}
 
 			outerLabel.setText(cls.getOuterClass() != null ? getName(cls.getOuterClass(), nameType) : "-");
@@ -183,7 +183,7 @@ public class ClassInfoTab extends Tab implements IGuiComponent {
 
 		for (int i = 0; i < cls.getAsmNodes().length; i++) {
 			if (!filter.test(cls.getAsmNodes()[i])) continue;
-			if (ret.length() > 0) ret.append(", ");
+			if (!ret.isEmpty()) ret.append(", ");
 
 			String path = cls.getAsmNodeOrigin(i).getPath();
 			ret.append(path, path.lastIndexOf('/') + 1, path.length());

@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 import matcher.model.type.FieldInstance;
 import matcher.model.type.MethodInstance;
 
-public class HtmlUtil {
+public final class HtmlUtil {
 	public static String getId(MethodInstance method) {
 		return "method-".concat(escapeId(method.getId()));
 	}
@@ -58,7 +58,7 @@ public class HtmlUtil {
 				if (ret == null) ret = new StringBuilder(max * 2);
 
 				if (c == '<' && allowedTags != null) {
-					int pos = str.substring(i, str.length()).indexOf('>');
+					int pos = str.substring(i).indexOf('>');
 
 					if (tagPattern.matcher(str.substring(i, i + pos + 1)).find()) {
 						// Skip ahead to after the tag
@@ -105,5 +105,8 @@ public class HtmlUtil {
 		builder.append(")[^>]*?>");
 
 		return Pattern.compile(builder.toString());
+	}
+
+	private HtmlUtil() {
 	}
 }

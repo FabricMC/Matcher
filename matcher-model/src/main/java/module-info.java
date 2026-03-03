@@ -1,3 +1,4 @@
+@SuppressWarnings("requires-transitive-automatic")
 module matcher.model {
 	requires java.prefs;
 	requires org.objectweb.asm.commons;

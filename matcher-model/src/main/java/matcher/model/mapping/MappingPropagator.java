@@ -24,7 +24,7 @@ public final class MappingPropagator {
 		int propagatedArgNames = 0;
 
 		for (ClassInstance cls : env.getClassesB()) {
-			if (cls.isInput() && cls.getMethods().length > 0) {
+			if (cls.isInput()) {
 				for (MethodInstance method : cls.getMethods()) {
 					if (method.getAllHierarchyMembers().size() <= 1) continue;
 					if (checked.contains(method)) continue;
@@ -85,12 +85,12 @@ public final class MappingPropagator {
 				}
 			}
 
-			if (((++current & (1 << 4) - 1)) == 0) {
+			if ((++current & (1 << 4) - 1) == 0) {
 				progressReceiver.accept((double) current / total);
 			}
 		}
 
-		logger.info("Propagated {} method names and {} method arg names", propagatedMethodNames, propagatedArgNames);
+		LOGGER.info("Propagated {} method names and {} method arg names", propagatedMethodNames, propagatedArgNames);
 
 		return propagatedMethodNames > 0 || propagatedArgNames > 0;
 	}
@@ -99,7 +99,7 @@ public final class MappingPropagator {
 	 * Ensure that fields and methods representing the same record component share the same mapped name.
 	 */
 	public static boolean fixRecordMemberNames(ClassEnvironment env, NameType nameType, NameType linkingNameType) {
-		if (!nameType.mapped) throw new IllegalArgumentException("non-mapped nameType: "+nameType);
+		if (!nameType.mapped) throw new IllegalArgumentException("non-mapped nameType: " + nameType);
 
 		int modified = 0;
 
@@ -117,10 +117,10 @@ public final class MappingPropagator {
 
 				if (linkedMethod.isNameObfuscated()
 						&& (!field.isNameObfuscated() || !linkedMethod.hasMappedName() || field.hasMappedName())) {
-					logger.debug("Copying record component name for method {} from field {} -> {}", linkedMethod, field, fieldName);
+					LOGGER.debug("Copying record component name for method {} from field {} -> {}", linkedMethod, field, fieldName);
 					linkedMethod.setMappedName(fieldName);
 				} else {
-					logger.debug("Copying record component name for field {} from method {} -> {}", field, linkedMethod, methodName);
+					LOGGER.debug("Copying record component name for field {} from method {} -> {}", field, linkedMethod, methodName);
 					field.setMappedName(methodName);
 				}
 
@@ -128,10 +128,13 @@ public final class MappingPropagator {
 			}
 		}
 
-		logger.info("Fixed {} record names.", modified);
+		LOGGER.info("Fixed {} record names.", modified);
 
 		return modified > 0;
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(MappingPropagator.class);
+	private MappingPropagator() {
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(MappingPropagator.class);
 }

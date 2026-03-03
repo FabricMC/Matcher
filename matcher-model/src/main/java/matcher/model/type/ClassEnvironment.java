@@ -10,7 +10,6 @@ import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +79,7 @@ public final class ClassEnvironment implements ClassEnv {
 
 			extractorB.process(nonObfuscatedMemberPatternB);
 			progressReceiver.accept(0.98);
-		} catch (InterruptedException | ExecutionException | IOException e) {
+		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		} finally {
 			classPathIndex.clear();
@@ -91,13 +90,13 @@ public final class ClassEnvironment implements ClassEnv {
 		progressReceiver.accept(1);
 	}
 
-	private void initClassPath(Collection<Path> sharedClassPath, boolean checkExisting) throws IOException {
+	private void initClassPath(Collection<Path> sharedClassPath, boolean checkExisting) {
 		for (Path archive : sharedClassPath) {
 			cpFiles.add(new InputFile(archive));
 
 			FileSystem fs = Util.iterateJar(archive, false, file -> {
 				String name = file.toAbsolutePath().toString();
-				if (!name.startsWith("/") || !name.endsWith(".class") || name.startsWith("//")) throw new RuntimeException("invalid path: "+archive+" ("+name+")");
+				if (!name.startsWith("/") || !name.endsWith(".class") || name.startsWith("//")) throw new RuntimeException("invalid path: " + archive + " (" + name + ")");
 				name = name.substring(1, name.length() - ".class".length());
 
 				if (!checkExisting || extractorA.getLocalClsByName(name) == null || extractorB.getLocalClsByName(name) == null) {
@@ -171,10 +170,10 @@ public final class ClassEnvironment implements ClassEnv {
 
 	@Override
 	public Collection<ClassInstance> getClasses() {
-		return new AbstractCollection<ClassInstance>() {
+		return new AbstractCollection<>() {
 			@Override
 			public Iterator<ClassInstance> iterator() {
-				return new Iterator<ClassInstance>() {
+				return new Iterator<>() {
 					@Override
 					public boolean hasNext() {
 						checkAdvance();
@@ -322,7 +321,7 @@ public final class ClassEnvironment implements ClassEnv {
 		} else if (extractorB.getLocalClsById(cls.getId()) == cls) {
 			extractor = extractorB;
 		} else {
-			throw new IllegalArgumentException("unknown class: "+cls);
+			throw new IllegalArgumentException("unknown class: " + cls);
 		}
 
 		return decompiler.decompile(cls, extractor, nameType);
@@ -354,7 +353,7 @@ public final class ClassEnvironment implements ClassEnv {
 		assert id.startsWith("[");
 
 		String elementId = id.substring(id.lastIndexOf('[') + 1);
-		if (elementId.isEmpty()) throw new IllegalArgumentException("invalid class desc: "+id);
+		if (elementId.isEmpty()) throw new IllegalArgumentException("invalid class desc: " + id);
 		assert elementId.length() == 1 || elementId.charAt(elementId.length() - 1) == ';' : elementId;
 
 		return env.getCreateClassInstance(elementId);
@@ -373,7 +372,7 @@ public final class ClassEnvironment implements ClassEnv {
 			Path file = getSharedClassLocation(name);
 
 			if (file == null) {
-				URL url = ClassLoader.getSystemResource(name+".class");
+				URL url = ClassLoader.getSystemResource(name + ".class");
 
 				if (url != null) {
 					file = getPath(url);
@@ -383,7 +382,7 @@ public final class ClassEnvironment implements ClassEnv {
 			if (file != null) {
 				ClassNode cn = readClass(file, true);
 				ClassInstance cls = new ClassInstance(ClassInstance.getId(cn.name), getContainingUri(file.toUri(), cn.name), this, cn);
-				if (!cls.getId().equals(id)) throw new RuntimeException("mismatched cls id "+id+" for "+file+", expected "+name);
+				if (!cls.getId().equals(id)) throw new RuntimeException("mismatched cls id " + id + " for " + file + ", expected " + name);
 
 				ClassInstance ret = addSharedCls(cls);
 
@@ -408,11 +407,11 @@ public final class ClassEnvironment implements ClassEnv {
 
 		try {
 			uri = url.toURI();
-			Path ret = Paths.get(uri);
+			Path ret = Path.of(uri);
 
 			if (uri.getScheme().equals("jrt") && !Files.exists(ret)) {
 				// workaround for https://bugs.openjdk.java.net/browse/JDK-8224946
-				ret = Paths.get(new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), "/modules".concat(uri.getPath()), uri.getQuery(), uri.getFragment()));
+				ret = Path.of(new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), "/modules".concat(uri.getPath()), uri.getQuery(), uri.getFragment()));
 			}
 
 			return ret;
@@ -422,9 +421,9 @@ public final class ClassEnvironment implements ClassEnv {
 			try {
 				addOpenFileSystem(FileSystems.newFileSystem(uri, Collections.emptyMap()));
 
-				return Paths.get(uri);
+				return Path.of(uri);
 			} catch (FileSystemNotFoundException e2) {
-				throw new RuntimeException("can't find fs for "+url, e2);
+				throw new RuntimeException("can't find fs for " + url, e2);
 			} catch (IOException e2) {
 				throw new UncheckedIOException(e2);
 			}
@@ -445,20 +444,20 @@ public final class ClassEnvironment implements ClassEnv {
 					throw new RuntimeException(e);
 				}
 			} else {
-				throw new UnsupportedOperationException("jar uri without !/: "+uri);
+				throw new UnsupportedOperationException("jar uri without !/: " + uri);
 			}
 		} else {
 			path = uri.getPath();
 		}
 
 		if (path == null) {
-			throw new UnsupportedOperationException("uri without path: "+uri);
+			throw new UnsupportedOperationException("uri without path: " + uri);
 		}
 
 		int rootPos = path.length() - ".class".length() - clsName.length();
 
 		if (rootPos <= 0 || !path.endsWith(".class") || !path.startsWith(clsName, rootPos)) {
-			throw new UnsupportedOperationException("unknown path format: "+uri);
+			throw new UnsupportedOperationException("unknown path format: " + uri);
 		}
 
 		path = path.substring(0, rootPos - 1);
@@ -508,7 +507,7 @@ public final class ClassEnvironment implements ClassEnv {
 							&& !mn.name.equals("<init>")
 							&& (!mn.name.equals("main") || !mn.desc.equals("([Ljava/lang/String;)V") || mn.access != (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC))
 							&& (!isEnum || !isStandardEnumMethod(cn.name, mn))
-							&& (nonObfuscatedMemberPattern == null || !nonObfuscatedMemberPattern.matcher(cn.name+"/"+mn.name+mn.desc).matches());
+							&& (nonObfuscatedMemberPattern == null || !nonObfuscatedMemberPattern.matcher(cn.name + "/" + mn.name + mn.desc).matches());
 
 					cls.addMethod(new MethodInstance(cls, mn.name, mn.desc, mn, nameObfuscated, i));
 
@@ -521,7 +520,7 @@ public final class ClassEnvironment implements ClassEnv {
 
 				if (cls.getField(fn.name, fn.desc) == null) {
 					boolean nameObfuscated = cls.isInput()
-							&& (nonObfuscatedMemberPattern == null || !nonObfuscatedMemberPattern.matcher(cn.name+"/"+fn.name+";;"+fn.desc).matches());
+							&& (nonObfuscatedMemberPattern == null || !nonObfuscatedMemberPattern.matcher(cn.name + "/" + fn.name + ";;" + fn.desc).matches());
 
 					cls.addField(new FieldInstance(cls, fn.name, fn.desc, fn, nameObfuscated, i));
 
@@ -587,7 +586,7 @@ public final class ClassEnvironment implements ClassEnv {
 			outerClass = cls.getEnv().getCreateClassInstance(ClassInstance.getId(name), createUnknown);
 
 			if (outerClass == null) {
-				logger.error("Missing outer cls: {} for {}", name, cls);
+				LOGGER.warn("Missing outer class {} for {}", name, cls);
 				return;
 			}
 		}
@@ -615,7 +614,7 @@ public final class ClassEnvironment implements ClassEnv {
 		return cache;
 	}
 
-	private static final Logger logger = LoggerFactory.getLogger(ClassEnvironment.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassEnvironment.class);
 	private final List<InputFile> cpFiles = new ArrayList<>();
 	private final Map<String, ClassInstance> sharedClasses = new HashMap<>();
 	private final List<FileSystem> openFileSystems = new ArrayList<>();
@@ -630,13 +629,13 @@ public final class ClassEnvironment implements ClassEnv {
 	private Pattern nonObfuscatedMemberPatternA;
 	private Pattern nonObfuscatedMemberPatternB;
 
-	public boolean assumeBothOrNoneObfuscated = false;
+	public boolean assumeBothOrNoneObfuscated;
 
-	public String classUidPrefix = "class_";
-	public String methodUidPrefix = "method_";
-	public String fieldUidPrefix = "field_";
-	public String argUidPrefix = "arg_";
-	public String varUidPrefix = "var_";
+	public static final String CLASS_UID_PREFIX = "class_";
+	public static final String METHOD_UID_PREFIX = "method_";
+	public static final String FIELD_UID_PREFIX = "field_";
+	public static final String ARG_UID_PREFIX = "arg_";
+	public static final String VAR_UID_PREFIX = "var_";
 	public int nextClassUid;
 	public int nextMethodUid;
 	public int nextFieldUid;

@@ -21,20 +21,20 @@ import matcher.model.type.MemberInstance;
 import matcher.model.type.MethodInstance;
 import matcher.model.type.Signature.FieldSignature;
 
-public class FieldClassifier {
+public final class FieldClassifier {
 	public static void init() {
-		addClassifier(fieldTypeCheck, 10);
-		addClassifier(accessFlags, 4);
-		addClassifier(type, 10);
-		addClassifier(signature, 5);
-		addClassifier(readReferences, 6);
-		addClassifier(writeReferences, 6);
-		addClassifier(position, 3);
-		addClassifier(initValue, 7);
-		addClassifier(initStrings, 8);
-		addClassifier(initCode, 10, ClassifierLevel.Intermediate, ClassifierLevel.Full, ClassifierLevel.Extra);
-		addClassifier(readRefsBci, 6, ClassifierLevel.Extra);
-		addClassifier(writeRefsBci, 6, ClassifierLevel.Extra);
+		addClassifier(FIELD_TYPE_CHECK, 10);
+		addClassifier(ACCESS_FLAGS, 4);
+		addClassifier(TYPE, 10);
+		addClassifier(SIGNATURE, 5);
+		addClassifier(READ_REFERENCES, 6);
+		addClassifier(WRITE_REFERENCES, 6);
+		addClassifier(POSITION, 3);
+		addClassifier(INIT_VALUE, 7);
+		addClassifier(INIT_STRINGS, 8);
+		addClassifier(INIT_CODE, 10, ClassifierLevel.Intermediate, ClassifierLevel.Full, ClassifierLevel.Extra);
+		addClassifier(READ_REFS_BCI, 6, ClassifierLevel.Extra);
+		addClassifier(WRITE_REFS_BCI, 6, ClassifierLevel.Extra);
 	}
 
 	public static void addClassifier(AbstractClassifier classifier, double weight, ClassifierLevel... levels) {
@@ -43,13 +43,13 @@ public class FieldClassifier {
 		classifier.weight = weight;
 
 		for (ClassifierLevel level : levels) {
-			classifiers.computeIfAbsent(level, ignore -> new ArrayList<>()).add(classifier);
-			maxScore.put(level, getMaxScore(level) + weight);
+			CLASSIFIERS.computeIfAbsent(level, ignore -> new ArrayList<>()).add(classifier);
+			MAX_SCORE.put(level, getMaxScore(level) + weight);
 		}
 	}
 
 	public static double getMaxScore(ClassifierLevel level) {
-		return maxScore.getOrDefault(level, 0.);
+		return MAX_SCORE.getOrDefault(level, 0.);
 	}
 
 	public static List<RankResult<FieldInstance>> rank(FieldInstance src, FieldInstance[] dsts, ClassifierLevel level, ClassEnvironment env) {
@@ -57,13 +57,13 @@ public class FieldClassifier {
 	}
 
 	public static List<RankResult<FieldInstance>> rank(FieldInstance src, FieldInstance[] dsts, ClassifierLevel level, ClassEnvironment env, double maxMismatch) {
-		return ClassifierUtil.rank(src, dsts, classifiers.getOrDefault(level, Collections.emptyList()), ClassifierUtil::checkPotentialEquality, env, maxMismatch);
+		return ClassifierUtil.rank(src, dsts, CLASSIFIERS.getOrDefault(level, Collections.emptyList()), ClassifierUtil::checkPotentialEquality, env, maxMismatch);
 	}
 
-	private static final Map<ClassifierLevel, List<IClassifier<FieldInstance>>> classifiers = new IdentityHashMap<>();
-	private static final Map<ClassifierLevel, Double> maxScore = new EnumMap<>(ClassifierLevel.class);
+	private static final Map<ClassifierLevel, List<IClassifier<FieldInstance>>> CLASSIFIERS = new IdentityHashMap<>();
+	private static final Map<ClassifierLevel, Double> MAX_SCORE = new EnumMap<>(ClassifierLevel.class);
 
-	private static AbstractClassifier fieldTypeCheck = new AbstractClassifier("field type check") {
+	private static final AbstractClassifier FIELD_TYPE_CHECK = new AbstractClassifier("field type check") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			if (!checkAsmNodes(fieldA, fieldB)) return compareAsmNodes(fieldA, fieldB);
@@ -76,7 +76,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier accessFlags = new AbstractClassifier("access flags") {
+	private static final AbstractClassifier ACCESS_FLAGS = new AbstractClassifier("access flags") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			if (!checkAsmNodes(fieldA, fieldB)) return compareAsmNodes(fieldA, fieldB);
@@ -89,14 +89,14 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier type = new AbstractClassifier("types") {
+	private static final AbstractClassifier TYPE = new AbstractClassifier("types") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			return ClassifierUtil.checkPotentialEquality(fieldA.getType(), fieldB.getType()) ? 1 : 0;
 		}
 	};
 
-	private static AbstractClassifier signature = new AbstractClassifier("signature") {
+	private static final AbstractClassifier SIGNATURE = new AbstractClassifier("signature") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			FieldSignature sigA = fieldA.getSignature();
@@ -109,21 +109,21 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier readReferences = new AbstractClassifier("read references") {
+	private static final AbstractClassifier READ_REFERENCES = new AbstractClassifier("read references") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			return ClassifierUtil.compareMethodSets(fieldA.getReadRefs(), fieldB.getReadRefs(), true);
 		}
 	};
 
-	private static AbstractClassifier writeReferences = new AbstractClassifier("write references") {
+	private static final AbstractClassifier WRITE_REFERENCES = new AbstractClassifier("write references") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			return ClassifierUtil.compareMethodSets(fieldA.getWriteRefs(), fieldB.getWriteRefs(), true);
 		}
 	};
 
-	private static AbstractClassifier position = new AbstractClassifier("position") {
+	private static final AbstractClassifier POSITION = new AbstractClassifier("position") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			/*if (fieldA.position == fieldB.position) return 1;
@@ -136,7 +136,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier initValue = new AbstractClassifier("init value") {
+	private static final AbstractClassifier INIT_VALUE = new AbstractClassifier("init value") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			if (!checkAsmNodes(fieldA, fieldB)) return compareAsmNodes(fieldA, fieldB);
@@ -151,7 +151,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier initStrings = new AbstractClassifier("init strings") {
+	private static final AbstractClassifier INIT_STRINGS = new AbstractClassifier("init strings") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			List<AbstractInsnNode> initA = fieldA.getInitializer();
@@ -169,7 +169,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier initCode = new AbstractClassifier("init code") {
+	private static final AbstractClassifier INIT_CODE = new AbstractClassifier("init code") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			List<AbstractInsnNode> initA = fieldA.getInitializer();
@@ -182,7 +182,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier readRefsBci = new AbstractClassifier("read refs (bci)") {
+	private static final AbstractClassifier READ_REFS_BCI = new AbstractClassifier("read refs (bci)") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			String ownerA = fieldA.getCls().getName();
@@ -237,7 +237,7 @@ public class FieldClassifier {
 		}
 	};
 
-	private static AbstractClassifier writeRefsBci = new AbstractClassifier("write refs (bci)") {
+	private static final AbstractClassifier WRITE_REFS_BCI = new AbstractClassifier("write refs (bci)") {
 		@Override
 		public double getScore(FieldInstance fieldA, FieldInstance fieldB, ClassEnvironment env) {
 			String ownerA = fieldA.getCls().getName();
@@ -309,7 +309,7 @@ public class FieldClassifier {
 	}
 
 	public abstract static class AbstractClassifier implements IClassifier<FieldInstance> {
-		public AbstractClassifier(String name) {
+		protected AbstractClassifier(String name) {
 			this.name = name;
 		}
 
@@ -325,5 +325,8 @@ public class FieldClassifier {
 
 		private final String name;
 		private double weight;
+	}
+
+	private FieldClassifier() {
 	}
 }
