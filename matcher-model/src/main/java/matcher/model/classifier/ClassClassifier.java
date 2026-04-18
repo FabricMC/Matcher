@@ -126,7 +126,10 @@ public class ClassClassifier {
 	private static AbstractClassifier hierarchySiblings = new AbstractClassifier("hierarchy siblings") {
 		@Override
 		public double getScore(ClassInstance clsA, ClassInstance clsB, ClassEnvironment env) {
-			return ClassifierUtil.compareCounts(clsA.getSuperClass().getChildClasses().size(), clsB.getSuperClass().getChildClasses().size());
+			return ClassifierUtil.compareCounts(
+					clsA.getSuperClass() == null ? 0 : clsA.getSuperClass().getChildClasses().size(),
+					clsB.getSuperClass() == null ? 0 : clsB.getSuperClass().getChildClasses().size()
+			);
 		}
 	};
 
