@@ -584,9 +584,9 @@ public final class MethodInstance extends MemberInstance<MethodInstance> impleme
 	Boolean anyInputRoot;
 	MethodType type = MethodType.UNKNOWN;
 
-	final Set<MethodInstance> refsIn = Util.newIdentityHashSet();
-	final Set<MethodInstance> refsOut = Util.newIdentityHashSet();
-	final Set<FieldInstance> fieldReadRefs = Util.newIdentityHashSet();
-	final Set<FieldInstance> fieldWriteRefs = Util.newIdentityHashSet();
-	final Set<ClassInstance> classRefs = Util.newIdentityHashSet();
+	final Set<MethodInstance> refsIn = Util.newIdentityHashSet(0);
+	final Set<MethodInstance> refsOut = Util.newIdentityHashSet(0);
+	final Set<FieldInstance> fieldReadRefs = Util.newIdentityHashSet(0);
+	final Set<FieldInstance> fieldWriteRefs = Util.newIdentityHashSet(0);
+	final Set<ClassInstance> classRefs = Util.newIdentityHashSet(0);
 }
