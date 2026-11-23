@@ -36,14 +36,18 @@ import matcher.model.type.ClassInstance.Origin;
 
 public class Util {
 	public static <T> Set<T> newIdentityHashSet() {
-		return Collections.newSetFromMap(new IdentityHashMap<>()); //new IdentityHashSet<>();
+		return Collections.newSetFromMap(new IdentityHashMap<>());
+	}
+
+	public static <T> Set<T> newIdentityHashSet(int expectedMaxSize) {
+		return Collections.newSetFromMap(new IdentityHashMap<>(expectedMaxSize));
 	}
 
 	public static <T> Set<T> newIdentityHashSet(Collection<? extends T> c) {
-		Set<T> ret = Collections.newSetFromMap(new IdentityHashMap<>(c.size()));
+		Set<T> ret = newIdentityHashSet(c.size());
 		ret.addAll(c);
 
-		return ret; //new IdentityHashSet<>(c);
+		return ret;
 	}
 
 	public static <T> Set<T> copySet(Set<T> set) {

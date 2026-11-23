@@ -1198,15 +1198,15 @@ public final class ClassInstance implements ParentInstance, Matchable<ClassInsta
 	private ClassInstance[] arrays = noArrays;
 
 	ClassInstance outerClass;
-	final Set<ClassInstance> innerClasses = Util.newIdentityHashSet();
+	final Set<ClassInstance> innerClasses = Util.newIdentityHashSet(0);
 
 	ClassInstance superClass;
-	final Set<ClassInstance> childClasses = Util.newIdentityHashSet();
-	final Set<ClassInstance> interfaces = Util.newIdentityHashSet();
-	final Set<ClassInstance> implementers = Util.newIdentityHashSet();
+	final Set<ClassInstance> childClasses = Util.newIdentityHashSet(0);
+	final Set<ClassInstance> interfaces = Util.newIdentityHashSet(0);
+	final Set<ClassInstance> implementers = Util.newIdentityHashSet(0);
 
-	final Set<MethodInstance> methodTypeRefs = Util.newIdentityHashSet();
-	final Set<FieldInstance> fieldTypeRefs = Util.newIdentityHashSet();
+	final Set<MethodInstance> methodTypeRefs = Util.newIdentityHashSet(0);
+	final Set<FieldInstance> fieldTypeRefs = Util.newIdentityHashSet(0);
 
 	final Set<String> strings = new HashSet<>();
 

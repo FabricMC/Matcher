@@ -175,6 +175,6 @@ public final class FieldInstance extends MemberInstance<FieldInstance> {
 	private final FieldSignature signature;
 	List<AbstractInsnNode> initializer;
 
-	final Set<MethodInstance> readRefs = Util.newIdentityHashSet();
-	final Set<MethodInstance> writeRefs = Util.newIdentityHashSet();
+	final Set<MethodInstance> readRefs = Util.newIdentityHashSet(0);
+	final Set<MethodInstance> writeRefs = Util.newIdentityHashSet(0);
 }
